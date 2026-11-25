@@ -451,6 +451,9 @@ class TradingAgentsGraph:
                 "current_response": final_state["investment_debate_state"][
                     "current_response"
                 ],
+                "turns": final_state["investment_debate_state"].get("turns", []),
+                "metrics": final_state["investment_debate_state"].get("metrics", {}),
+                "termination": final_state["investment_debate_state"].get("termination", {}),
             },
             "trader_investment_plan": final_state["trader_investment_plan"],
             "risk_debate_state": {
@@ -458,6 +461,9 @@ class TradingAgentsGraph:
                 "conservative_history": final_state["risk_debate_state"]["conservative_history"],
                 "neutral_history": final_state["risk_debate_state"]["neutral_history"],
                 "history": final_state["risk_debate_state"]["history"],
+                "turns": final_state["risk_debate_state"].get("turns", []),
+                "metrics": final_state["risk_debate_state"].get("metrics", {}),
+                "termination": final_state["risk_debate_state"].get("termination", {}),
             },
             "investment_plan": final_state["investment_plan"],
             "final_trade_decision": final_state["final_trade_decision"],
