@@ -13,7 +13,7 @@
 | Structured debater | dev: `tradingagents/debate/**`, graph/agent wiring; team-app: `src/structured_debater.py` stub | ADR-002 / REQ-STRUCTURED-DEBATE | — | Implemented on dev; not ported to team-app |
 | Trace recorder | `src/trace_recorder.py`, `src/integration/trace_adapter.py` | ADR-003 / REQ-TRACEABILITY | INV-TRACE-COMPLETENESS | Complete (CUI Haoyu) |
 | Guardrail | `src/guardrail.py`, `src/integration/decision_adapter.py`, `gate_support.py`, `governed_graph.py` | ADR-004 / REQ-HARD-GUARDRAIL | INV-GUARDRAIL-ZERO-ESCAPE | Complete (CUI Haoyu) |
-| Termination controller | `src/termination_controller.py` (constant-only stub) | ADR-005 / REQ-TERMINATION-DISCIPLINE | — | Missing |
+| Termination controller | `tradingagents/graph/termination.py` (`should_terminate`, `TerminationController`); `src/termination_controller.py` facade; analyst loop wired in `setup.py` | ADR-005 / REQ-TERMINATION-DISCIPLINE | — | Implemented: repeat/max wired; stall/budget API tested |
 | Integration composition (**not** an element) | `src/integration/**` | ADR-006 (composes ADR-003/004) | — | Complete (CUI Haoyu) |
 
 ## Rules

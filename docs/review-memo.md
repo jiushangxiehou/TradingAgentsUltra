@@ -122,5 +122,31 @@
   success; `dev` merge CI success.
 - **Verdict:** **APPROVE**
 
+## PR-006: Termination discipline integration
+
+- **Author:** OpenCode coding agent (supervised by CUI Haoyu)  |  **Reviewer:** CUI Haoyu  |  **Date:** 2026-11-25
+- **Linked requirement(s):** REQ-TERMINATION-DISCIPLINE
+- **Commit(s):** dev termination integration (this review unit)
+- **Spec alignment:** Adds the missing self-termination signal required by the
+  requirement and ADR-005: max tool rounds, repeated tool-call rounds, and a
+  stateful stall/budget controller. The analyst loop wraps up with the existing
+  WRAP_UP path; the debate engine's convergence/schema termination remains in
+  ADR-002.
+- **Architecture alignment:** `tradingagents/graph/termination.py` owns the
+  runtime implementation because the graph nodes consume it; the project-owned
+  `src/termination_controller.py` is a facade, not a duplicate. The module map
+  now documents this explicitly instead of calling the element missing.
+- **Code & test quality:** `test/offline/test_termination.py` has 7 cases
+  (repeat, distinct, cap, budget, stall, reset, invalid threshold). The offline
+  suite is 441 passed; the upstream suite is 1,498 passed, 6 skipped; ruff
+  passes on the changed files.
+- **Security & efficiency:** The loop cannot run forever on a repeated tool
+  call; a stall/budget observation is explicit and logged. The controller does
+  not raise on malformed messages and does not terminate on an empty round.
+- **Operational metadata:** The analyst loop logs the termination trigger;
+  the stateful stall/budget API is tested but not yet wired into every loop.
+- **Verdict:** **APPROVE**; full per-loop stall/budget wiring is a follow-up,
+  not a claim.
+
 <!-- Append new memos below. No GitHub PRs were used; the review unit is the
 feature commit or integration merge. -->

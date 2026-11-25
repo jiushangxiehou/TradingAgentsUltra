@@ -239,3 +239,38 @@ entries:
       the isolated runs recorded 73 core passes and 18 Agent integration passes.
       Two team placeholders failed the combined offline suite. No real CityU
       call or model-quality evaluation was used for those results.
+  - id: "010"
+    date: "2026-11-25"
+    session_ref: "docs/architecture/adr/005-termination-discipline.md"
+    actor: "CUI Haoyu"
+    change: >
+      Added the termination-discipline integration to close the D8 gap: a
+      deterministic analyst tool-loop repeat/max check in
+      tradingagents/graph/termination.py, a stateful repeat/stall/budget
+      controller, a src/termination_controller.py facade, and seven offline
+      cases. ADR-005 moved to Accepted; the trace matrix, verification map,
+      debt register, D6 report and README were updated.
+    artifacts_touched:
+      - "tradingagents/graph/termination.py"
+      - "tradingagents/graph/setup.py"
+      - "src/termination_controller.py"
+      - "test/offline/test_termination.py"
+      - "test/offline/test_context_budget.py"
+      - "docs/architecture/adr/005-termination-discipline.md"
+      - "docs/architecture/trace-matrix.md"
+      - "docs/code-governance/verification-constraints.md"
+      - "docs/debt-register.md"
+      - "docs/review-memo.md"
+      - "Report.md"
+      - "README.md"
+      - "AGENTS.md"
+      - "docs/ai-use-log.yaml"
+    human_oversight: >
+      The student requested the dev gap closure and reviewed the termination
+      semantics: repeat/max are wired into the analyst loop, while the stateful
+      stall/budget API is tested but not claimed as wired into every loop. The
+      ADR-005 acceptance and its limitations are recorded rather than hidden.
+    rationale: >
+      A loop that repeats the same tool call should stop before its round cap;
+      the change is bounded to the graph setup and a new termination module, with
+      a 441-test offline suite and the full upstream suite as regression evidence.

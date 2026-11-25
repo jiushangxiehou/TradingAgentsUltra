@@ -113,9 +113,10 @@ python scripts/verify_baseline.py --strict
 .venv/Scripts/python.exe -m pytest test/offline -m offline -q
 ```
 
-These require no API keys and must pass in CI. The two unmarked stub tests
-(`test_context_budget.py`, `test_termination.py`) are deselected by `-m offline`
-until they are implemented; a bare `pytest` run shows them as the known failures.
+These require no API keys and must pass in CI. The suite now includes the
+context-budget configuration cases and the termination-controller cases in
+`test/offline/` (441 tests on dev); the former `NotImplementedError` placeholders
+are gone.
 
 ### Upstream baseline unit tests
 

@@ -11,7 +11,7 @@
 | REQ-STRUCTURED-DEBATE | dev: `tradingagents/debate/engine.py` (`run_debate_turn`, `bind_debate_turn`), `schemas.py`, graph/agent wiring; team-app: `src/structured_debater.py` stub | dev: `tests/test_debate_opening.py`, `tests/test_structured_agents.py` | `TurnAudit`, debate metrics, `TerminationDecision` in debate state | Dev-complete (feature-f); feature-c stub |
 | REQ-TRACEABILITY | `src/trace_recorder.py` (`TraceRecorder.record_snapshot/record_assertion/record_final_decision/audit`) + `src/integration/trace_adapter.py` | `test/offline/test_traceability.py`, `test/offline/test_integration_trace.py`, `test/offline/test_integration_end_to_end.py` | `guardrail_trace_<date>.json` sidecar; `traceable`, `checked_links`, `resolved_links`, `findings` | Complete (CUI Haoyu) |
 | REQ-HARD-GUARDRAIL | `src/guardrail.py` (`Decision`, `GuardrailLimits`, `evaluate_decision`) + `src/integration/governed_graph.py` | `test/offline/test_guardrail.py`, `test/offline/test_integration_decision.py`, `test_integration_gate.py`, `test_integration_end_to_end.py` | `guardrail` audit payload; `audit` record; memory-log rating | Complete (CUI Haoyu) |
-| REQ-TERMINATION-DISCIPLINE | `src/termination_controller.py` (constant-only stub) | `test/offline/test_termination.py` (`NotImplementedError`) | planned termination trigger log | Missing |
+| REQ-TERMINATION-DISCIPLINE | `tradingagents/graph/termination.py` (`should_terminate`, `TerminationController`) + `src/termination_controller.py` facade; analyst loop in `tradingagents/graph/setup.py` | `test/offline/test_termination.py` (repeat, distinct, cap, budget, stall, reset); debate termination covered by `tests/test_debate_opening.py` | `TerminationDecision` trigger/reason in the wrap-up log; debate `termination` state | Implemented: repeat+max wired; stall/budget API tested |
 
 ## Notes
 
@@ -21,8 +21,10 @@
 - The trace and guardrail rows are implemented and tested in team-app; they
   also run through the full graph. The live run produced 34 snapshots, 170
   resolved links and zero findings.
-- The termination row is a real gap: the ADR and constant exist, but there is no
-  controller and no passing test.
+- The termination row is implemented for the analyst repeat/max-round path and
+  for debate convergence/schema termination. The stateful stall/budget signals
+  are tested in the controller but not yet wired into every loop; that remains a
+  follow-up rather than a silent claim.
 
 > **CUI Haoyu note:** the trace and guardrail rows are mine and were verified
 > locally. I did not claim the dev context/debate rows as mine; their owners

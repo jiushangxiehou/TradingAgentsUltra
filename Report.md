@@ -27,8 +27,9 @@
 
 **Owned scope.** REQ-HARD-GUARDRAIL and REQ-TRACEABILITY, plus the ADR-006
 integration that makes the pinned TradingAgents 0.7.1 pipeline actually call
-both modules. I did not own REQ-CONTEXT-BUDGET, REQ-STRUCTURED-DEBATE or
-REQ-TERMINATION-DISCIPLINE; those modules and tests remain with their owners.
+both modules. I did not own REQ-CONTEXT-BUDGET or REQ-STRUCTURED-DEBATE; those
+modules remain with their owners. I added the termination-controller
+integration to close the D8 gap after the dev merge (ADR-005).
 
 **Delivered.**
 
@@ -41,8 +42,14 @@ REQ-TERMINATION-DISCIPLINE; those modules and tests remain with their owners.
   explicit A+B-strict `ExecutionIntent` (`size_pct`, `short_amount`,
   `available_cash`), gate support, trace adapter, guarded CLI entry, and the
   `guardrail_trace_<date>.json` sidecar.
-- Verification — 429 deterministic offline tests, 9 full-graph end-to-end
-  tests, the full upstream regression suite, ruff/schema checks, and baseline
+- Termination discipline — `tradingagents/graph/termination.py` (repeat/max
+  tool-round check and stateful `TerminationController`) plus the
+  `src/termination_controller.py` facade; the analyst loop wraps up on a
+  repeated tool-call round or the round cap; 7 offline cases cover repeat,
+  distinct, cap, budget, stall, reset and invalid thresholds.
+- Verification — 441 deterministic offline tests (429 core + 12
+  termination/budget cases), 9 full-graph end-to-end tests, the full upstream
+  regression suite, ruff/schema checks, and baseline
   verification in both layouts: 213/213 pinned files in the earlier vendor
   layout, then 208 pinned files plus 5 declared project overrides after the
   move to the current root layout.
@@ -73,7 +80,7 @@ their owners:
 |---|---|---|
 | Structured debate | `tradingagents/debate/**`, graph/agent wiring, commit `a871245` | feature-f owner (to confirm) |
 | Context budget | `tradingagents/graph/context_budget.py`, `budgeted_model.py`, `deepseek_context_adapter.py`, commits `f20c6c9`–`7de8935` | feature-z owner (to confirm) |
-| Termination discipline | `src/termination_controller.py` (stub only) | unassigned / to confirm |
+| Termination discipline | `tradingagents/graph/termination.py`, `src/termination_controller.py`, analyst loop wiring | CUI Haoyu (integration); original requirement unassigned |
 
 ## 2. Software engineering process
 
@@ -144,10 +151,10 @@ Verification is layered:
 1. **Structural** — imports, module boundaries, permissions, the pinned-baseline
    verifier, and lint. The root-layout verifier checks 208 pinned files and
    reports the five declared overrides separately.
-2. **Regression** — the 429-test deterministic offline suite, 9 full-graph
+2. **Regression** — the 441-test deterministic offline suite, 9 full-graph
    end-to-end tests, and the upstream suite. On dev, the upstream run passed
-   1,496 tests with six skips and two environment-only failures; the two were
-   rerun from a project-writable directory and passed.
+   1,498 tests with six skips; the earlier Windows Temp failures were
+   environment-only and passed when rerun from a project-writable directory.
 3. **Behavioural** — the guardrail/trace invariants and the live prose
    faithfulness/relevancy target. The guardrail and trace layers have negative
    tests; the live prose test is still a stub, which is one of the unmet D4/D7
@@ -182,9 +189,9 @@ The team's optimisations were driven by observed failure modes:
   left as templates.
 
 The process is not finished. The test-approval gate, semantic-evaluation gate,
-branch protection, termination implementation and module-boundary reconciliation
-remain open; they are listed in `docs/debt-register.md` and in the CI/README
-status table.
+branch protection, module-boundary/baseline reconciliation and the full
+per-loop stall/budget termination wiring remain open; they are listed in
+`docs/debt-register.md` and in the CI/README status table.
 
 ### 2.6 Work increments in practice
 
@@ -216,9 +223,9 @@ of absence, not a silent gap.
 **Increment 4 — verification and baseline.** The team ran the offline and
 full-graph suites, found and fixed the trace defects, moved to the root layout,
 added the dual-layout verifier, repaired the CI import and AI-use-log gates, and
-recorded the audit-timing caveat. The outputs are the 429-test offline suite,
-the 9-test E2E suite, the verifier, the root-layout README/ADR note and
-AI-use-log entry 008.
+recorded the audit-timing caveat. The outputs are the 441-test offline suite,
+the 441-test offline suite, the 9-test E2E suite, the verifier, the root-layout
+README/ADR note and AI-use-log entry 008.
 
 **Increment 5 — module integration and publication.** The feature-f and
 feature-z branches were merged into dev, the guardrail/trace path was run on a
@@ -273,10 +280,10 @@ cluster into three periods:
 The trend is not a simple “fewer bugs every sprint” curve. The early bugs were
 in the evidence and gate contracts; after those were fixed the failure surface
 moved to integration and CI. The number of deterministic tests grew from the
-initial guardrail/trace suite to 429 offline tests plus 9 full-graph end-to-end
-tests; the dev upstream suite is 1,496 passing tests. The remaining defects are
-mostly unbuilt features and missing gates, not regressions in the implemented
-paths.
+initial guardrail/trace suite to 441 offline tests plus 9 full-graph end-to-end
+tests; the dev upstream suite is 1,498 passing tests. The remaining gaps are
+the live prose/semantic gate and the CI/branch-protection items, not
+regressions in the implemented paths.
 
 ### 3.4 Ambiguity and defect handling
 
@@ -310,7 +317,7 @@ The layers are:
   portfolio manager. The nine full-graph tests are the bridge between the
   scripted seams and the real LangGraph.
 - **Regression** against the upstream tree and the deterministic project suite;
-  the dev tree's 1,496 passing tests are the broadest current signal.
+  the dev tree's 1,498 passing tests are the broadest current signal.
 - **Structural** checks for the baseline layout, ruff and the module map. The
   module-map check is still a TODO; the dev/team-app mismatch is recorded.
 
@@ -486,9 +493,9 @@ and a last-minute clarification should not be necessary.
 
 | Evidence | Result | Where |
 |---|---|---|
-| Deterministic offline suite (feature-c) | 429 passed, 2 deselected | `pytest test/offline -m offline -q` |
+| Deterministic offline suite (dev) | 441 passed | `pytest test/offline -m offline -q` |
 | Full-graph end-to-end | 9 passed | `test/offline/test_integration_end_to_end.py` |
-| Dev upstream suite | 1,496 passed, 6 skipped, 2 environment-only failures; both rerun and passed outside Windows Temp | dev workspace |
+| Dev upstream suite | 1,498 passed, 6 skipped | dev workspace |
 | Current team-app upstream collection | 1,414 tests collected | `pytest tests --collect-only -q` |
 | Baseline, vendor layout | 213/213 pinned files | earlier verifier run |
 | Baseline, root layout | 208 pinned + 5 declared overrides; PASS | `scripts/verify_baseline.py --strict` |
@@ -497,9 +504,10 @@ and a last-minute clarification should not be necessary.
 | Dev CI after the feature merges | success | GitHub Actions |
 | Static analysis (current) | `ruff check src test` PASS; `pip check` compatible (97 packages) | local venv |
 
-Known unmet verification items: termination has no passing test; the live prose
-faithfulness/relevancy test is a stub; the semantic-evaluation gate and branch
-protection are not implemented.
+Known unmet verification items: the live prose faithfulness/relevancy test is
+still a stub; the semantic-evaluation gate and branch protection are not
+implemented. The termination repeat/max path and its controller are tested; the
+full per-loop stall/budget wiring remains a follow-up.
 
 ## 8. Formatting and pending team inputs
 
@@ -511,9 +519,9 @@ protection are not implemented.
 - **Other members' reflections:** add one 300–500-word section per member with
   name and student ID.
 - **Point 12:** 12-point font size; there is no Section 12.
-- **Remaining engineering gaps:** termination implementation, baseline/module
-  reconciliation, test-approval gate, semantic-evaluation gate, branch
-  protection, and the 19-file baseline drift on dev.
+- **Remaining engineering gaps:** full per-loop stall/budget termination wiring,
+  baseline/module reconciliation, test-approval gate, semantic-evaluation gate,
+  branch protection, and the 19-file baseline drift on dev.
 
 ## Appendix A — Work phases and human gates
 
@@ -523,7 +531,7 @@ protection are not implemented.
 | 1. Requirements | Classify functional, invariant, quality and performance requirements; define fit criteria | D1 registry + schema; transcript 01 | Approve the requirement set |
 | 2. Architecture | Evaluate candidates, choose the layered/integration design, write ADRs and invariants | D2 blueprint, ADR-001–006, evaluation table, trace matrix | Approve the architecture and the rejected options |
 | 3. Plan | Produce traceability, interface contracts, scope, test strategy and ordered steps | `Prompt.md` execution plan; transcript 03 | Stop before code |
-| 4. Guardrail build | Build the deterministic gate, audit record, Hold fallback and negative tests | `src/guardrail.py`, 429-test offline suite | Approve each trigger and fail-closed behaviour |
+| 4. Guardrail build | Build the deterministic gate, audit record, Hold fallback and negative tests | `src/guardrail.py`, 441-test offline suite | Approve each trigger and fail-closed behaviour |
 | 5. Trace build | Build DataSnapshot/TraceLink, assertions, findings and the sidecar | `src/trace_recorder.py`, `src/integration/trace_adapter.py` | Review evidence coverage and G1 scope |
 | 6. Verification/revision | Run the offline, full-graph and upstream suites; revise the architecture from evidence | Transcript 05; bug diary; D4 records | Accept or reject the verification evidence |
 | 7. Baseline integration | Move to the root layout, add the dual-layout verifier, repair CI | README, verifier, CI runs, AI-use log 008 | Approve the migration and the override list |
@@ -542,7 +550,7 @@ authoritative; the agent's output before that point is advisory.
 | REQ-STRUCTURED-DEBATE | quality / Should | dev: `tradingagents/debate/**` and graph/agent wiring; team-app: `src/structured_debater.py` stub | `tests/test_debate_opening.py`, `tests/test_structured_agents.py` (dev) | Dev-complete; not yet ported to team-app |
 | REQ-TRACEABILITY | functional / Must | `src/trace_recorder.py`, `src/integration/trace_adapter.py` | `test/offline/test_traceability.py`, `test/offline/test_integration_trace.py`, E2E | Complete |
 | REQ-HARD-GUARDRAIL | invariant / Must | `src/guardrail.py`, `src/integration/decision_adapter.py`, `gate_support.py`, `governed_graph.py` | `test/offline/test_guardrail.py`, decision/gate/E2E tests | Complete |
-| REQ-TERMINATION-DISCIPLINE | performance / Should | `src/termination_controller.py` (constant-only stub) | `test/offline/test_termination.py` (`NotImplementedError`) | Missing |
+| REQ-TERMINATION-DISCIPLINE | performance / Should | `tradingagents/graph/termination.py` (`should_terminate`, `TerminationController`) + `src/termination_controller.py` facade; analyst loop wired | `test/offline/test_termination.py` (7 cases); debate termination tests | Complete for repeat/max + controller; stall/budget API tested, full per-loop wiring follow-up |
 
 D1 itself validates: 5 requirements, schema PASS, all with fit criterion,
 machine-checkable criterion, priority, source, statement and tradeoff. The
@@ -610,9 +618,9 @@ monotone decline; the remaining gaps are mostly unbuilt features and gates.
 
 | Command / evidence | Result |
 |---|---|
-| `pytest test/offline -m offline -q` | 429 passed, 2 deselected |
+| `pytest test/offline -m offline -q` | 441 passed |
 | `pytest test/offline/test_integration_end_to_end.py` | 9 passed |
-| `pytest tests -q -m "not integration"` on dev | 1,496 passed, 6 skipped; 2 environment-only failures, both pass when rerun in a project-writable directory |
+| `pytest tests -q -m "not integration"` on dev | 1,498 passed, 6 skipped |
 | `pytest tests --collect-only -q` on team-app | 1,414 tests collected |
 | `scripts/verify_baseline.py --strict` | PASS: 208 pinned + 5 declared overrides in root layout; earlier 213/213 vendor |
 | `ruff check src test` | PASS |
@@ -631,7 +639,7 @@ explicit evidence of absence.
 
 | Gap | Impact | Suggested action | Owner |
 |---|---|---|---|
-| Termination not implemented | D8/D4 incomplete | Implement repeat/stall/budget termination and a failing-then-passing test | owner to confirm |
+| Full per-loop stall/budget termination wiring | Controller implemented/tested; analyst loop wires repeat+max; debate engine wires convergence/schema | Wire the stateful stall/budget trigger into the remaining loops | CUI Haoyu |
 | Context budget/structured debate not in team-app | D8 incomplete if team-app is the submission | Port dev modules into the declared `src/` boundaries or merge dev as the submission | module owners |
 | 19 pinned files altered on dev | Baseline verifier fails on dev | Approve a controlled override ADR or port into `src/` and restore pinned files | module owners + CUI |
 | Test-approval gate / semantic-evaluation gate / branch protection | D7 incomplete | Wire the gates and configure required checks + human review | team lead |
@@ -639,22 +647,22 @@ explicit evidence of absence.
 | Other members' contributions/reflections | D6 incomplete | Each member adds their row, effort and 300–500-word reflection | each member |
 | Team relative weights | D6 incomplete by instruction | Apply the agreed effort measure and pro-rate | team |
 
-> **CUI Haoyu note:** I can own the baseline reconciliation and the guardrail/
-> trace evidence; the termination implementation, the module ports and the
-> CI/branch-protection settings need their owners or a team decision.
+> **CUI Haoyu note:** I own the guardrail/trace evidence and the termination
+> repeat/max + controller integration. The baseline reconciliation, module
+> ports and CI/branch-protection settings need their owners or a team decision.
 
 ## Appendix H — D1–D9 deliverable map
 
 | Deliverable | Status in `team-app` | Evidence / remaining gap |
 |---|---|---|
 | D1 Requirements | Complete at file/schema level | 5 requirements with fit criteria, priorities, sources; schema PASS; AI-use log 8 entries. No cost/governance/security-typed entry (minor). |
-| D2 Architecture | Files complete; populated with one open ADR | Blueprint, ADR-001–006, invariants, trace matrix, memory, permission, runtime catalog, evaluation table/logbook, risk list and option ledger are populated; ADR-001/002 still need owner confirmation, and ADR-005 remains Proposed because termination is unimplemented. The layered-context/reinjection section is in ADR-001. |
+| D2 Architecture | Files complete; populated | Blueprint, ADR-001–006, invariants, trace matrix, memory, permission, runtime catalog, evaluation table/logbook, risk list and option ledger are populated; ADR-001/002 still need owner confirmation; ADR-005 is accepted with the termination integration. The layered-context/reinjection section is in ADR-001. |
 | D3 Governance | Files complete; populated | `AGENTS.md` integration contracts, structural constraints, permissions, rules/covenant and the MCP manifest are populated. The module-to-element fitness check is still a follow-up, not a claimed gate. |
 | D4 Verification | Populated from the integration | Review memos, debt register, bug diary and test-to-requirement map added. Live prose semantic test is a stub; semantic gate absent. |
 | D5 Transcripts | Complete | Seven annotated sessions + README; published on feature-c and merged to dev. |
 | D6 Report | This draft | Own contribution and reflection recorded; team contribution/weights/other reflections left blank by instruction; Point 12 is 12-point font, not a section. |
 | D7 GitHub/CI | Partial | Real repo and commit history; schema/tests/AI-use-log/ruff+pip-check jobs exist. Test-approval, semantic-evaluation and branch protection still missing; README now documents the design/status. |
-| D8 Source/tests | Partial | Guardrail/trace/integration complete; context budget and structured debate complete on dev but not on team-app; termination still missing in both. |
+| D8 Source/tests | Partial on team-app; complete on dev | Guardrail/trace/integration and termination repeat/max+controller complete; context budget and structured debate complete on dev; feature-c still has the `src/` stubs. Module mapping/baseline drift remains debt. |
 | D9 Prompt | Complete | `Prompt.md` requires plan-first, human approval, staged build and gates. |
 
 ## Appendix I — Governance and verification checklist
@@ -662,10 +670,10 @@ explicit evidence of absence.
 | Check | How it is satisfied | Status |
 |---|---|---|
 | Requirements are machine-readable and schema-valid | YAML registry + JSON schema + CI schema gate | Pass |
-| Every fit criterion has a test | Guardrail/trace rows mapped in verification-constraints; context/debate dev tests; termination missing | Partial |
+| Every fit criterion has a test | Guardrail/trace/termination rows mapped; context/debate dev tests; live prose still a stub | Partial |
 | Every invariant has a negative test | guardrail trigger tests; trace completeness tests | Guardrail/trace pass; termination n/a |
 | Every test references a requirement/invariant | Trace/guardrail test docstrings and names | Pass for owned modules |
-| Full prior suite runs with zero regressions | 429 offline + 9 E2E + upstream; dev 1,496 | Pass for implemented paths |
+| Full prior suite runs with zero regressions | 441 offline + 9 E2E + upstream; dev 1,498 | Pass for implemented paths |
 | New code/prompts update the AI-use log | CI gate + entry 008 | Pass (gate is real) |
 | Review memo per integration unit | D4 review memos for the feature-c/dev units | Pass for reviewed units |
 | Debt and bug records are current | D4 debt register/bug diary populated in this pass | Pass (ongoing) |
@@ -686,9 +694,10 @@ team-process records. The following limitations are material:
 2. **Baseline drift.** The dev features alter 19 pinned files. The strict
    verifier fails on dev. A controlled override ADR or a port into `src/` is a
    prerequisite for claiming baseline compliance.
-3. **Termination is not implemented.** The requirement has an ADR and a
-   placeholder, but no controller and no passing test. This is a real D8 gap,
-   not a documentation formatting issue.
+3. **Termination is implemented for the repeat/max path.** The controller and
+   analyst-loop wiring are tested; the stateful stall/budget trigger is tested
+   at the controller but not yet wired into every loop. That is an integration
+   follow-up, not a missing module.
 4. **The semantic gate is not wired.** The live prose test and the fixed
    evaluation replay are still missing, so the behavioural layer is only
    partially evidenced.
@@ -700,10 +709,11 @@ team-process records. The following limitations are material:
    final report must add them and format at 12-point single spacing to exceed
    15 pages.
 
-The next actions are therefore concrete: implement termination; choose and
-reconcile the submission tree; close the baseline drift with an ADR or a port;
-wire the semantic/test-approval gates and branch protection; add the live prose
-test; and complete the team contribution/reflection sections. None of these
+The next actions are therefore concrete: wire the stateful stall/budget trigger
+into the remaining loops; choose and reconcile the submission tree; close the
+baseline drift with an ADR or a port; wire the semantic/test-approval gates and
+branch protection; add the live prose test; and complete the team
+contribution/reflection sections. None of these
 should be hidden behind a claim that the project is already complete.
 
 > **CUI Haoyu note:** for my part, the guardrail/trace evidence, the D5

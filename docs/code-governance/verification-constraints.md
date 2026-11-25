@@ -37,11 +37,11 @@ pretending the trees are identical.
 
 | Requirement | Implementation | Primary tests | Status |
 |---|---|---|---|
-| REQ-CONTEXT-BUDGET | dev: `tradingagents/graph/context_budget.py`, `budgeted_model.py`, `llm_clients/deepseek_context_adapter.py`; team-app: `src/context_assembler.py` stub | `tests/test_context_budget_core.py`, `tests/test_budget_agent_integration.py`, `tests/news_context_budget_fixtures.py` (dev); `test/offline/test_context_budget.py` is a stub | **Implemented/tested on dev; feature-c stub** |
+| REQ-CONTEXT-BUDGET | dev: `tradingagents/graph/context_budget.py`, `budgeted_model.py`, `llm_clients/deepseek_context_adapter.py`; team-app: `src/context_assembler.py` stub | `tests/test_context_budget_core.py`, `tests/test_budget_agent_integration.py`, `tests/news_context_budget_fixtures.py`; `test/offline/test_context_budget.py` now covers the strict config contract (5 cases) | **Implemented/tested on dev; feature-c stub** |
 | REQ-STRUCTURED-DEBATE | dev: `tradingagents/debate/**`, conditional logic, researcher/risk wiring; team-app: `src/structured_debater.py` stub | `tests/test_debate_opening.py`, `tests/test_structured_agents.py`, graph E2E (dev); no dedicated team-app test | **Implemented/tested on dev; feature-c stub** |
 | REQ-TRACEABILITY | `src/trace_recorder.py`, `src/integration/trace_adapter.py` | `test/offline/test_traceability.py`, `test/offline/test_integration_trace.py`, `test/offline/test_integration_end_to_end.py` | **Complete (CUI Haoyu)** |
 | REQ-HARD-GUARDRAIL | `src/guardrail.py`, `src/integration/decision_adapter.py`, `gate_support.py`, `governed_graph.py` | `test/offline/test_guardrail.py`, `test_integration_decision.py`, `test_integration_gate.py`, `test_integration_end_to_end.py` | **Complete (CUI Haoyu)** |
-| REQ-TERMINATION-DISCIPLINE | `src/termination_controller.py` is a constant-only stub | `test/offline/test_termination.py` raises `NotImplementedError` | **Missing** |
+| REQ-TERMINATION-DISCIPLINE | `tradingagents/graph/termination.py` (`should_terminate`, `TerminationController`) + `src/termination_controller.py` facade; analyst loop wired in `setup.py` | `test/offline/test_termination.py` (7 cases: repeat, distinct, cap, budget, stall, reset, invalid threshold); debate tests | **Complete for repeat/max + controller; stall/budget API tested, full per-loop wiring follow-up** |
 
 ### Invariant evidence
 
@@ -57,9 +57,9 @@ pretending the trees are identical.
   (208 pinned + 5 overrides); `ruff check src test` passes for the project code.
   A module-to-element fitness check is still a TODO; the dev/team-app module
   mapping drift is recorded in the debt register.
-- **Regression:** `test/offline` 429 passed, 2 deselected; 9 full-graph E2E
-  passed; the dev upstream suite has 1,496 passing tests with two
-  environment-only `PermissionError` cases, both passing when rerun from a
+- **Regression:** `test/offline` 441 passed (429 core + 12 termination/budget
+  cases); 9 full-graph E2E passed; the dev upstream suite has 1,498 passing
+  tests with six skips and no persistent failures when run from a
   project-writable directory.
 - **Behavioral:** the threshold remains faithfulness/relevancy ≥ 0.6, but
   `test/live/test_live_prose.py` is still a `NotImplementedError` stub and the
@@ -96,4 +96,6 @@ pretending the trees are identical.
 > **CUI Haoyu note:** the guardrail and traceability rows and their negative
 > tests are mine and were verified locally. The context-budget evidence is the
 > feature-z owner's acceptance run; it is recorded here as team evidence, not
-> as my test result. Termination has no implementation in either tree.
+> as my test result. I added the termination controller/test integration and
+> the offline context-budget config test; the historical feature-z acceptance
+> above predates those two fill-ins.

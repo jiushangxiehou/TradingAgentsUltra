@@ -73,13 +73,12 @@ state.
 | Structured debater | dev `tradingagents/debate/engine.py`: `bind_debate_turn`, `run_debate_turn`; schemas `DebateTurn`, `TurnAudit`, `TerminationDecision` | Emits schema-validated turns and an audit/metrics record; a failed schema turn is recorded, not silently discarded | REQ-STRUCTURED-DEBATE; dev-only |
 | Trace recorder | `src/trace_recorder.py`: `TraceRecorder.record_snapshot`, `record_assertion`, `record_final_decision`, `audit`; `src/integration/trace_adapter.py` | Every critical assertion links to a snapshot; a trace failure produces `traceable=false`/`trace_error`, never changes the rating | INV-TRACE-COMPLETENESS; complete |
 | Guardrail | `src/guardrail.py`: `Decision`, `GuardrailLimits`, `evaluate_decision` → `GuardrailResult` | Deterministic check of rating, declared size, short and cash; missing/malformed input fails closed to `Hold` | INV-GUARDRAIL-ZERO-ESCAPE; complete |
-| Termination controller | `src/termination_controller.py` (planned) | Planned stop decision on repeat/stall/budget exhaustion; no controller exists yet | REQ-TERMINATION-DISCIPLINE; missing |
+| Termination controller | `tradingagents/graph/termination.py`: `should_terminate`, `TerminationController`; `src/termination_controller.py` facade | Stops on max tool rounds or a repeated tool-call round; the stateful controller accepts stall/budget observations; the analyst loop wires repeat + max | REQ-TERMINATION-DISCIPLINE; implemented (stall/budget per-loop wiring follow-up) |
 | Integration composition | `src/integration/governed_graph.py`: `GuardedTradingAgentsGraph.record_decision`; `src/integration/entry.py`: `run_guarded_cli` | The gate runs after the graph finishes and before the memory log; the CLI keeps the upstream prompts and report flow | ADR-006; complete (CUI Haoyu) |
 
-> **CUI Haoyu note:** the trace, guardrail and integration contracts are mine.
-> The context/debate contracts are the dev implementations; their owners should
-> confirm the final module placement. The termination contract is deliberately
-> marked missing rather than described as if it existed.
+> **CUI Haoyu note:** the trace, guardrail, integration and termination
+> controller integration are mine. The context/debate contracts are the dev
+> implementations; their owners should confirm the final module placement.
 
 ## 7. Verification requirements the generated code must satisfy
 

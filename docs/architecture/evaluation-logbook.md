@@ -14,6 +14,8 @@
 | 2026-11-25 | Static analysis | `ruff check src test` PASS; 97 packages compatible via `uv pip check` | Lint + dependency layer wired into CI; type/safety checks still follow-up |
 | 2026-11-25 | Report formatting clarification | “Point 12” confirmed as 12-point font, not a section | D6 placeholder removed; formatting/page requirement recorded |
 
+| 2026-11-25 | Termination controller | 7 offline cases: repeat, distinct, cap, budget, stall, reset, invalid threshold; analyst loop wires repeat+max | D8 termination gap reduced; full per-loop stall/budget wiring remains a follow-up |
+
 ## What this log does not claim
 
 - It does not claim the semantic-evaluation gate or the live prose threshold is

@@ -25,6 +25,7 @@ from tradingagents.agents.state import AgentState
 
 from .analyst_execution import build_analyst_execution_plan
 from .conditional_logic import ConditionalLogic
+from .termination import should_terminate
 
 logger = logging.getLogger(__name__)
 
@@ -70,11 +71,20 @@ def _analyst_graph(spec, agent, max_tool_rounds: int):
     def calls(messages):
         return [call["name"] for m in messages for call in (getattr(m, "tool_calls", None) or [])]
 
-    def rounds(messages) -> int:
-        return sum(1 for m in messages if getattr(m, "tool_calls", None))
-
     def more_or_wrap_up(state) -> str:
-        return "wrap_up" if rounds(state["messages"]) >= max_tool_rounds else "agent"
+        decision = should_terminate(
+            state["messages"],
+            max_tool_rounds=max_tool_rounds,
+        )
+        if decision.should_terminate:
+            logger.warning(
+                "%s termination: %s (%s)",
+                spec.agent_node,
+                decision.trigger,
+                decision.reason,
+            )
+            return "wrap_up"
+        return "agent"
 
     def wrap_up(state):
         repeated = ", ".join(f"{name} x{n}" for name, n in Counter(calls(state["messages"])).most_common())
