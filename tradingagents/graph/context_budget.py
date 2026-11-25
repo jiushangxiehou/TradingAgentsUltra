@@ -58,10 +58,11 @@ per-fact timestamp, so this layer cannot and does not invent one.
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import json
 import logging
 from contextvars import ContextVar
-from datetime import UTC, date
+from datetime import UTC, date, datetime, time
 from threading import Lock
 from typing import Any, Protocol, runtime_checkable
 
@@ -98,6 +99,7 @@ class BudgetDiagnostic:
     compaction_passes: int
     allowed_send: bool
     overflow: bool
+    summarized_blocks: int = 0
 
     def as_dict(self) -> dict[str, Any]:
         return dataclasses.asdict(self)
@@ -144,7 +146,9 @@ class ProviderAdapter(Protocol):
       * ``count(request)`` returns the exact input-token count of ``request`` or
         raises :class:`UnverifiableCountError`.
       * ``send(request)`` sends that exact ``request`` and returns the model
-        reply. The caller always counts and sends the same ``request`` object.
+        reply. A prepared request exposes immutable ``body: bytes``. The transport
+        must consume ``require_authorized_send(self, request)`` exactly once and
+        send the returned bytes unchanged, with automatic retries disabled.
     """
 
     def supports(self, model: str) -> bool: ...
@@ -243,11 +247,11 @@ def _explicit_provenance(message: Any) -> dict:
             continue
         provenance.update({key: value for key, value in data.items() if value is not None})
         if data.get("available_at") is not None:
-            dates.append(_available_date(data["available_at"]))
+            dates.append(_availability_instant(data["available_at"]))
         if "relevance" in data:
             relevance.add(data["relevance"])
     if dates:
-        # The later UTC availability day cannot expose either source early.
+        # The later UTC availability instant cannot expose either source early.
         provenance["available_at"] = max(dates)
     if len(relevance) > 1:
         provenance.pop("relevance", None)
@@ -321,11 +325,22 @@ def group_into_blocks(messages: list) -> list[dict]:
 
 def _identity(message: Any) -> str:
     # Keep source metadata and model-visible content, independent of transaction IDs.
+    data = message.model_dump(exclude={"id", "tool_call_id", "tool_calls", "usage_metadata"})
+    if _msg_role(message) == "tool" and _explicit_provenance(message).get("fact_id"):
+        content = data.get("content")
+        if isinstance(content, str):
+            # Only normalize line-ending whitespace on explicitly identified
+            # evidence. The tool arguments and all provenance still must match.
+            data["content"] = "\n".join(line.rstrip() for line in content.splitlines()).rstrip()
     return json.dumps(
-        message.model_dump(exclude={"id", "tool_call_id", "tool_calls", "usage_metadata"}),
+        data,
         sort_keys=True,
         default=str,
     )
+
+
+def _has_assistant_text(message):
+    return bool(message.content or message.additional_kwargs.get("reasoning_content"))
 
 
 def _make_block(msgs: list, *, anchor: bool) -> dict:
@@ -348,7 +363,7 @@ def _make_block(msgs: list, *, anchor: bool) -> dict:
         "messages": msgs,
         "anchor": anchor,
         "signature": signature,
-        "disposable": not anchor and not (_msg_role(first) == "ai" and first.content) and all(
+        "disposable": not anchor and not (_msg_role(first) == "ai" and _has_assistant_text(first)) and all(
             _explicit_provenance(message).get("relevance") == "irrelevant"
             for message in (results or msgs)
         ),
@@ -389,15 +404,14 @@ def _dedup_blocks(blocks: list[dict]) -> tuple[list[dict], int]:
     return kept, removed
 
 
-def _available_date(value: Any) -> date:
-    from datetime import datetime
-
-    if isinstance(value, str) and len(value) == 10:
-        return date.fromisoformat(value)
+def _availability_instant(value: str) -> datetime:
+    """Treat a date as the end of its UTC day; timestamps require an offset."""
+    if len(value) == 10:
+        return datetime.combine(date.fromisoformat(value), time.max, UTC)
     parsed = datetime.fromisoformat(value)
-    if parsed.tzinfo is not None:
-        parsed = parsed.astimezone(UTC)
-    return parsed.date()
+    if parsed.tzinfo is None:
+        raise ValueError("availability timestamp requires a UTC offset")
+    return parsed.astimezone(UTC)
 
 
 def _filter_explicit_future(blocks: list[dict], cut_off: str | None) -> tuple[list[dict], int]:
@@ -409,7 +423,7 @@ def _filter_explicit_future(blocks: list[dict], cut_off: str | None) -> tuple[li
     """
     if cut_off is None:
         raise ValueError("missing analysis cutoff")
-    cutoff = _available_date(cut_off)
+    cutoff = _availability_instant(cut_off)
 
     def is_future(message):
         value = _explicit_provenance(message).get("available_at")
@@ -430,7 +444,7 @@ def _filter_explicit_future(blocks: list[dict], cut_off: str | None) -> tuple[li
                 kept.append(block)
             continue
         unavailable = [first_future or future for future in result_future]
-        if all(unavailable) and (first_future or not first.content):
+        if all(unavailable) and (first_future or not _has_assistant_text(first)):
             removed += 1
         elif any(unavailable):
             # Preserve available assistant text and call/result pairing without
@@ -446,6 +460,59 @@ def _filter_explicit_future(blocks: list[dict], cut_off: str | None) -> tuple[li
         else:
             kept.append(block)
     return kept, removed
+
+
+_FACT_FIELDS = (
+    "fact_id", "ticker", "subject", "event_date", "available_at", "published_at",
+    "source", "amount", "causality", "relevance",
+)
+
+
+def _summarize_tool_result(message):
+    """Extract one explicitly annotated low-priority fact into a labelled record.
+
+    The source must contain a verbatim line for every required field. Free-form
+    vendor prose cannot safely be summarized by this rule.
+    """
+    if _msg_role(message) != "tool" or not isinstance(message.content, str):
+        return message
+    provenance = _explicit_provenance(message)
+    fields = provenance.get("summary_fact")
+    if provenance.get("relevance") not in {"irrelevant", "low"} or not isinstance(fields, dict):
+        return message
+    if set(fields) != set(_FACT_FIELDS) or any(
+        not isinstance(value, str) or not value or len(value.splitlines()) != 1
+        for value in fields.values()
+    ):
+        return message
+    if any(fields[field] != provenance[field] for field in _FACT_FIELDS if field in provenance
+           and field != "available_at"):
+        return message
+    try:
+        if _availability_instant(fields["available_at"]) != provenance.get("available_at"):
+            return message
+    except ValueError:
+        return message
+    lines = [f"{field}: {fields[field]}" for field in _FACT_FIELDS]
+    source_lines = message.content.splitlines()
+    if any(source_lines.count(line) != 1 for line in lines):
+        return message
+    summary = "Extracted source fact:\n" + "\n".join(lines)
+    return message.model_copy(update={"content": summary}) if len(summary) < len(message.content) else message
+
+
+def _summarize_blocks(blocks):
+    compacted = []
+    summarized = 0
+    for block in blocks:
+        first, *results = block["messages"]
+        extracted = [_summarize_tool_result(result) for result in results]
+        if any(before is not after for before, after in zip(results, extracted, strict=True)):
+            compacted.append({**block, "messages": [first, *extracted]})
+            summarized += 1
+        else:
+            compacted.append(block)
+    return compacted, summarized
 
 
 def _block_size(block: dict) -> int:
@@ -489,6 +556,7 @@ def budget_and_send(
     model_name: str,
     cut_off: str | None = None,
     send: bool = True,
+    transform=None,
 ) -> tuple[Any, BudgetDiagnostic]:
     """Prepare, count, compact (one pass), re-count, and optionally send.
 
@@ -548,7 +616,13 @@ def budget_and_send(
 
     def _prepare(blk_list):
         try:
-            return adapter.prepare(flatten_blocks(blk_list), bound_model)
+            messages = flatten_blocks(blk_list)
+            if transform is not None:
+                messages = transform(messages)
+            request = adapter.prepare(messages, bound_model)
+            if type(getattr(request, "body", None)) is not bytes:
+                raise UnverifiableCountError("Prepared request must expose immutable bytes")
+            return request
         except Exception:  # noqa: BLE001 - preparation failure is unverifiable
             logger.warning("Provider adapter prepare() failed; count unverifiable.")
             return None
@@ -608,6 +682,7 @@ def budget_and_send(
     # then a SINGLE trim to cap and a final count (count #2). No second pass.
     passed, deduped = _dedup_blocks(blocks)
     trimmed, dropped_by_trim = _trim_to_cap(blocks, passed, cap, count_before)
+    trimmed, summarized = _summarize_blocks(trimmed)
 
     # Final request + count (#2). Reuse this exact object for sending.
     final_request = _prepare(trimmed)
@@ -625,6 +700,7 @@ def budget_and_send(
                 deduped_blocks=deduped,
                 dropped_blocks=future_dropped + dropped_by_trim,
                 compaction_passes=1,
+                summarized_blocks=summarized,
                 allowed_send=False,
                 overflow=False,
             )
@@ -643,6 +719,7 @@ def budget_and_send(
                 deduped_blocks=deduped,
                 dropped_blocks=future_dropped + dropped_by_trim,
                 compaction_passes=1,
+                summarized_blocks=summarized,
                 allowed_send=False,
                 overflow=True,
             )
@@ -660,6 +737,7 @@ def budget_and_send(
         deduped_blocks=deduped,
         dropped_blocks=future_dropped + dropped_by_trim,
         compaction_passes=1,
+        summarized_blocks=summarized,
         allowed_send=True,
         overflow=False,
     )
@@ -670,6 +748,7 @@ class _SendPermit:
     adapter: ProviderAdapter
     request: Any
     body: bytes | None
+    fingerprint: bytes | None
     consumed: bool = False
     lock: Any = dataclasses.field(default_factory=Lock)
 
@@ -686,13 +765,20 @@ def require_authorized_send(adapter: ProviderAdapter, request: Any) -> bytes:
         if permit.consumed:
             raise UnverifiableCountError("Final request was not authorized by the context budget")
         permit.consumed = True
-        if permit.body is None or request.body != permit.body:
+        body = getattr(request, "body", None)
+        if (
+            type(body) is not bytes
+            or hashlib.sha256(body).digest() != permit.fingerprint
+            or body != permit.body
+        ):
             raise UnverifiableCountError("Final request body differs from the counted body")
         return permit.body
 
 
 def _send_authorized(adapter: ProviderAdapter, request: Any, body: Any) -> Any:
-    permit = _SendPermit(adapter, request, body if type(body) is bytes else None)
+    if type(body) is not bytes:
+        raise UnverifiableCountError("No immutable counted request body")
+    permit = _SendPermit(adapter, request, body, hashlib.sha256(body).digest())
     token = _send_permit.set(permit)
     try:
         return adapter.send(request)

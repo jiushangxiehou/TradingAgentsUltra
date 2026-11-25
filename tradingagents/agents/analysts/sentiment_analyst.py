@@ -66,7 +66,12 @@ def create_sentiment_analyst(llm):
         news_block = get_news.func(ticker, start_date, end_date)
         # Pass the analysis window so a historical run trims social posts to it
         # instead of leaking today's chatter into a backtest (#1220).
-        screen = jev_screen(ticker)
+        from tradingagents.graph.budgeted_model import BudgetedModel
+
+        screen = (
+            jev_screen(ticker, budget_config=llm.budget_config)
+            if isinstance(llm, BudgetedModel) else jev_screen(ticker)
+        )
         stocktwits_block = fetch_stocktwits_messages(
             ticker, limit=30, start_date=start_date, end_date=end_date, screen=screen
         )

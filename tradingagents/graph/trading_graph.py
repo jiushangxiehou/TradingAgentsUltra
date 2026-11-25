@@ -19,8 +19,10 @@ from tradingagents.memory import TradingMemoryLog, settlement
 from tradingagents.memory.reflection import Reflector
 from tradingagents.reporting import write_report_tree
 
+from .budgeted_model import BudgetedModel
 from .checkpointer import checkpoint_step, clear_checkpoint, get_checkpointer, thread_id
 from .conditional_logic import ConditionalLogic
+from .context_budget import _adapter_supports, resolve_budget
 from .propagation import Propagator
 from .setup import GraphSetup
 
@@ -57,6 +59,8 @@ class TradingAgentsGraph:
         debug=False,
         config: dict[str, Any] = None,
         callbacks: list | None = None,
+        *,
+        context_adapters=None,
     ):
         """Initialize the trading agents graph and components.
 
@@ -65,10 +69,14 @@ class TradingAgentsGraph:
             debug: Whether to run in debug mode
             config: Configuration dictionary. If None, uses default config
             callbacks: Optional list of callback handlers (e.g., for tracking LLM/tool stats)
+            context_adapters: Approved offline-counting adapters keyed by quick/deep tier.
+                Missing or unverifiable adapters cannot send when budgeting is enabled.
         """
         self.debug = debug
-        self.config = config or DEFAULT_CONFIG
+        self.config = dict(config or DEFAULT_CONFIG)
         self.callbacks = callbacks or []
+        self._budget_enabled = resolve_budget(self.config)[0] is not None
+        self._context_adapters = dict(context_adapters or {})
 
         set_config(self.config)
 
@@ -76,8 +84,8 @@ class TradingAgentsGraph:
         os.makedirs(self.config["results_dir"], exist_ok=True)
 
         extra = {"callbacks": self.callbacks} if self.callbacks else {}
-        self.deep_thinking_llm = create_tier_client(self.config, "deep", **extra).get_llm()
-        self.quick_thinking_llm = create_tier_client(self.config, "quick", **extra).get_llm()
+        self.deep_thinking_llm = self._tier_model("deep", extra)
+        self.quick_thinking_llm = self._tier_model("quick", extra)
 
         self.memory_log = TradingMemoryLog(self.config)
 
@@ -98,12 +106,16 @@ class TradingAgentsGraph:
             self.deep_thinking_llm,
             self.conditional_logic,
             max_tool_rounds,
+            budget_model=self._agent_model if self._budget_enabled else None,
         )
 
         self.propagator = Propagator(
             max_recur_limit=max_recur_limit,
         )
-        self.reflector = Reflector(self.quick_thinking_llm)
+        reflection_model = self.quick_thinking_llm
+        if self._budget_enabled:
+            reflection_model = self._agent_model("Reflection", "quick", reflection_model)
+        self.reflector = Reflector(reflection_model)
 
         # Graph-shape-affecting run choices, kept for the checkpoint signature.
         self.selected_analysts = tuple(selected_analysts)
@@ -113,6 +125,20 @@ class TradingAgentsGraph:
         self.graph = self.workflow.compile()
         self._checkpointer_ctx = None
         self._resuming = False
+
+    def _tier_model(self, tier, extra):
+        if self._budget_enabled:
+            adapter = self._context_adapters.get(tier)
+            if adapter is None or not _adapter_supports(adapter, self.config[f"{tier}_think_llm"]):
+                # Avoid initializing credentials/SDKs for blocked budget paths.
+                return None
+        return create_tier_client(self.config, tier, **extra).get_llm()
+
+    def _agent_model(self, agent_name, tier, model):
+        return BudgetedModel(
+            model, self._context_adapters.get(tier), self.config, agent_name,
+            self.config[f"{tier}_think_llm"],
+        )
 
     def resolve_instrument_context(self, ticker: str, asset_type: str = "stock",
                                    trade_date: str | None = None) -> str:
@@ -148,6 +174,19 @@ class TradingAgentsGraph:
         the run keeps its files and how it retries are left out.
         """
         settings = {k: v for k, v in self.config.items() if k not in _NOT_IN_SIGNATURE}
+        for key in ("context_input_hard_cap_tokens", "context_input_compaction_threshold_tokens"):
+            if settings.get(key) in (None, ""):
+                settings.pop(key, None)
+        if resolve_budget(settings)[0] is not None:
+            settings["context_budget_adapter_versions"] = [
+                (
+                    tier, type(adapter).__module__, type(adapter).__qualname__,
+                    getattr(adapter, "counter_revision", None),
+                    _adapter_supports(adapter, self.config[f"{tier}_think_llm"]),
+                )
+                for tier in ("quick", "deep")
+                if (adapter := getattr(self, "_context_adapters", {}).get(tier)) is not None
+            ]
         digest = hashlib.sha256(json.dumps(settings, sort_keys=True, default=str).encode()).hexdigest()[:12]
         return "|".join([
             "analysts=" + ",".join(self.selected_analysts),

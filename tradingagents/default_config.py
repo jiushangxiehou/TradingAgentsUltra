@@ -90,6 +90,8 @@ def build_default_config() -> dict:
         "memory_log_max_entries": None,
         # LLM settings
         "llm_provider": "openai",
+        "context_input_hard_cap_tokens": None,
+        "context_input_compaction_threshold_tokens": None,
         "deep_think_llm": "gpt-6-sol",
         "quick_think_llm": "gpt-6-luna",
         # When None, each provider's client falls back to its own default endpoint
