@@ -397,3 +397,54 @@ entries:
       D5 and D6 are about attributable evidence. A single labelled document and a
       single report make the attribution visible, and the integrity statement
       prevents a reconstruction from being read as a raw transcript.
+
+  - id: "014"
+    date: "2026-11-25"
+    session_ref: "FANHAO/sessionlog-FAN Hao.md (owner-supplied session record) and FANHAO/report-FAN Hao(1).md; raw OpenCode export not available — declared in transcripts/D5-team-session-transcripts.md"
+    actor: "Fan Hao (60835652)"
+    change: >
+      Implemented REQ-STRUCTURED-DEBATE: the typed turn protocol (DebateTurn,
+      DebateClaim, DebateRebuttal, TurnAudit, TerminationDecision), a stable
+      evidence catalog built from the analyst reports, backend validation of
+      claims, evidence ids and rebuttal targets, deterministic claim ids, debate
+      metrics, and a deterministic termination policy with shadow mode. Wired
+      into the five debate nodes, the agent state, conditional logic and
+      propagation, plus five debate_* configuration keys (commit a871245).
+    artifacts_touched:
+      - "tradingagents/debate/__init__.py"
+      - "tradingagents/debate/schemas.py"
+      - "tradingagents/debate/evidence.py"
+      - "tradingagents/debate/engine.py"
+      - "tradingagents/agents/researchers/bull_researcher.py"
+      - "tradingagents/agents/researchers/bear_researcher.py"
+      - "tradingagents/agents/risk_mgmt/aggressive_debator.py"
+      - "tradingagents/agents/risk_mgmt/conservative_debator.py"
+      - "tradingagents/agents/risk_mgmt/neutral_debator.py"
+      - "tradingagents/agents/managers/research_manager.py"
+      - "tradingagents/agents/managers/portfolio_manager.py"
+      - "tradingagents/agents/state.py"
+      - "tradingagents/graph/conditional_logic.py"
+      - "tradingagents/graph/propagation.py"
+      - "tradingagents/graph/trading_graph.py"
+      - "tradingagents/default_config.py"
+      - "tests/test_debate_opening.py"
+      - "tests/test_structured_agents.py"
+      - "docs/architecture/adr/002-structured-debate.md"
+      - "docs/ai-use-log.yaml"
+    human_oversight: >
+      The owner's record shows the scope decision (extend the five existing
+      debate nodes, do not rewrite the pipeline), the choice of shadow mode so
+      the baseline round limit is preserved until the policy is enabled, and the
+      rule that the model's own schema_valid flag is never trusted: the backend
+      validates the evidence ids and the rebuttal targets itself. The merge was
+      reviewed with the integration owner. The owner's contribution report and
+      session record are the D5/D6 evidence; the raw session export is still owed
+      and is recorded as such.
+    rationale: >
+      Free-form debate is not convergible and cannot be validated, so any
+      termination rule would rest on prose. A typed turn plus a deterministic,
+      post-cycle termination policy makes the debate auditable and bounded while
+      keeping the existing markdown history fields for compatibility. The
+      commit's git author identity is the repository's configured account;
+      requirement ownership and story points are assigned to Fan Hao (60835652)
+      by the team, as recorded in Report.md §1.

@@ -325,7 +325,7 @@ changed was the **interpretation** of existing requirements:
   five declared overrides;
 - the report's “Point 12” was clarified as 12-point font size, not a section.
 
-The AI-use log has thirteen entries spanning requirements, architecture,
+The AI-use log has fourteen entries spanning requirements, architecture,
 guardrail, trace, verification, baseline integration, module integration, the
 root-layout/CI changes, the structured-debate and context-budget implementations
 (the two feature owners' entries) and this reconciliation round. That is a requirement-history record, but the team
@@ -659,7 +659,7 @@ Hao(1).md`; the member should confirm the condensation.)*
 | Safety-path checks | 21 checks, 0 failed (contract, purity, API surface, permissions, structure) | `scripts/check_safety_paths.py` |
 | Schema gate | PASS (5 requirements validated) | `scripts/verify_schema.py` |
 | Semantic-evaluation gate (deterministic) | prompt-constraint retention 1.00, decision replay 9/9, 0 escapes, model baseline unchanged | `scripts/gate_semantic_eval.py` |
-| AI-use-log gate | base..head range; 13 entries | `scripts/gate_ai_use_log.py` |
+| AI-use-log gate | base..head range; 14 entries | `scripts/gate_ai_use_log.py` |
 | Test-approval gate | 7 approvals seeded over every current test file | `scripts/gate_test_approval.py`, `docs/test-approval.yaml` |
 | Live guarded run | NVDA 2026-11-20, 14m28s, `Underweight`, guardrail PASS, 34 snapshots, 170/170 links, 0 findings, 0 capture errors | live artifacts |
 | Live prose evaluation | implemented as a faithfulness/relevancy proxy (>= 0.6); needs `DEEPSEEK_API_KEY` to produce a result | `test/live/test_live_prose.py` |
@@ -837,7 +837,7 @@ explicit evidence of absence.
 
 | Deliverable | Status (submission tree = `dev`) | Evidence / remaining gap |
 |---|---|---|
-| D1 Requirements | Complete | 5 requirements with fit criteria, priorities, sources; schema PASS; AI-use log 13 entries. No cost/governance/security-typed entry (minor coverage note). |
+| D1 Requirements | Complete | 5 requirements with fit criteria, priorities, sources; schema PASS; AI-use log 14 entries. No cost/governance/security-typed entry (minor coverage note). |
 | D2 Architecture | Complete | Blueprint, ADR-001–009, invariants, trace matrix, memory, permission, runtime catalog, evaluation table/logbook, risk list and option ledger. ADR-001/002 have named owners; ADR-007 fixes the element map; ADR-008 declares the baseline differences; ADR-009 adds the type-check gate. |
 | D3 Governance | Complete | `AGENTS.md` (submission tree, contracts, ownership), structural constraints with an enforced element map, permission model, rules/covenant and the MCP manifest. The module-to-element fitness check is now a test, not a TODO. |
 | D4 Verification | Complete for the implemented paths | Review memos, debt register, bug diary, test-to-requirement map, structural-fitness tests, gate tests, and a live prose proxy with documented thresholds. The live result still needs a key. |

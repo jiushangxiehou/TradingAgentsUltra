@@ -194,7 +194,7 @@ is a repository setting; the policy is in
 | 3. Schema | Validate `docs/req/requirements.yaml` against `docs/req/req-schema.json`. | **Implemented** in CI and locally. |
 | 4. Semantic evaluation | Replay a fixed evaluation set (`docs/eval/fixed-set.json`): prompt-constraint retention >= 0.6, 9 labelled guardrail decisions at 100%, model baseline unchanged. The live faithfulness/relevancy proxy (>= 0.6) is `test/live/test_live_prose.py`. | **Implemented** for the deterministic half; live run needs a key. |
 | 5. Regression | Offline suite + full upstream suite on every change; any regression blocks. | **Implemented**. |
-| 6. AI-use log | A code/prompt change must update `docs/ai-use-log.yaml`; the comparison covers the whole base..head range. | **Implemented** (`scripts/gate_ai_use_log.py`, 13 entries). |
+| 6. AI-use log | A code/prompt change must update `docs/ai-use-log.yaml`; the comparison covers the whole base..head range. | **Implemented** (`scripts/gate_ai_use_log.py`, 14 entries). |
 | Baseline integrity (ADR-008) | `--strict` passes on 213 pinned files with 24 **declared** differences; undeclared or stale drift fails. | **Implemented**; passes on `dev`. |
 
 **Branch protection:** the workflow, `CODEOWNERS`, the PR template and the
