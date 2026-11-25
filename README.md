@@ -1,9 +1,17 @@
 # TradingAgents Enhancement — CS5351 Team Project
 
-> **Team-app root.** This is the repository root (`<team-app>/`) for the
-> CS5351 Agentic Software Engineering project. All deliverables (D1–D9) live
-> under here and are produced and governed by an AI coding agent (OpenCode)
-> under auditable human supervision.
+> **Team-app root — the submission tree is `dev`** (ADR-007). All deliverables
+> (D1–D9) live here and were produced by an AI coding agent (OpenCode) under
+> auditable human supervision.
+>
+> | Student | Student ID | Story points / owned requirement(s) | Weight |
+> |---|---|---|---|
+> | CUI Haoyu | 60760270 | Safety boundary + evidence-chain traceability (REQ-HARD-GUARDRAIL, REQ-TRACEABILITY); ADR-006 integration, D7/D8 governance | 1.00 |
+> | ZhuXuan | 60377218 | Context retrieval and budget (REQ-CONTEXT-BUDGET, ADR-001) | 1.00 |
+> | Fan Hao | 60835652 | Structured debate + termination (REQ-STRUCTURED-DEBATE, REQ-TERMINATION-DISCIPLINE; integration wiring by CUI Haoyu) | 1.00 |
+>
+> Contribution evidence and reflections: `Report.md` §1 and §6. Session
+> transcripts: `transcripts/D5-team-session-transcripts.md`.
 
 ## 1. Purpose and architecture (a few paragraphs)
 
@@ -16,59 +24,62 @@ manager) that collaborate to produce a 5-tier trade rating.
 Our enhancement adds five requirements focused on making the agent system more
 efficient, more auditable, and safer:
 
-- **REQ-CONTEXT-BUDGET** — bound and compact each agent's context to cut tokens.
+- **REQ-CONTEXT-BUDGET** — bound and compact each agent's context to cut tokens
+  (`tradingagents/graph/context_budget.py`, `budgeted_model.py`,
+  `llm_clients/deepseek_context_adapter.py`; facade `src/context_assembler.py`).
 - **REQ-STRUCTURED-DEBATE** — turn the free-form bull/bear debate into a
-  structured, schema-validated, convergible dialogue.
+  structured, schema-validated, convergible dialogue (`tradingagents/debate/**`;
+  facade `src/structured_debater.py`).
 - **REQ-TRACEABILITY** — record an evidence chain from each assertion to the
-  data snapshot it cited.
+  data snapshot it cited (`src/trace_recorder.py` + `src/integration/trace_adapter.py`).
 - **REQ-HARD-GUARDRAIL** — a deterministic safety boundary that hard-checks
-  every AI decision (position size, cash, legal rating) with zero tolerance.
+  every AI decision (position size, cash, legal rating) with zero tolerance
+  (`src/guardrail.py` + `src/integration/**`).
 - **REQ-TERMINATION-DISCIPLINE** — give each agent loop self-termination on
-  stall / repeat / budget exhaustion.
+  stall / repeat / budget exhaustion (`tradingagents/graph/termination.py`;
+  facade `src/termination_controller.py`).
 
-The architecture is documented under `docs/architecture/` (blueprint, ADRs,
-invariants, trace matrix, memory design, permission model, runtime policy).
-The coding agent is governed by `AGENTS.md`, `.opencode/`, and `.agent/`.
+The element map is enforced by `test/offline/test_structural_fitness.py`
+(ADR-007). The 24 declared differences from the pinned 0.7.1 baseline — 5
+project-owned files and 19 owned dev overrides — are listed in
+[`docs/architecture/baseline-overrides.md`](docs/architecture/baseline-overrides.md)
+and enforced by `scripts/verify_baseline.py` (ADR-008).
 
 ## 2. Project file organisation
 
-```
+```text
 <repo-root>/
 ├── README.md / AGENTS.md / architecture-blueprint.md / Prompt.md / Report.md
 ├── docs/
 │   ├── req/           machine-readable PRD + CI validation schema (D1)
-│   ├── architecture/  8+3 architecture artifact types (D2)
+│   ├── architecture/  11 artifact types + ADR-001..009 + baseline-overrides.md (D2)
 │   ├── code-governance/ coding + verification governance (D3, D4)
+│   ├── eval/          fixed evaluation set for the semantic gate
 │   ├── ai-use-log.yaml / review-memo.md / debt-register.md / bug-diary.md
+│   ├── d4-verification-plan.md
+│   └── test-approval.yaml
 ├── .opencode/         project-level permissions + always-on rules (D3)
 ├── .agent/            project covenant (D3)
-├── .github/workflows/ CI blocking gates (D4/D7)
+├── .github/           workflows + CODEOWNERS + PR template (D4/D7)
+├── scripts/           gates: schema, baseline, test approval, semantic,
+│                      AI-use log, safety paths, element map
 ├── prompts/           versioned runtime prompts
-├── src/               full source (D8)
+├── src/               guardrail, trace recorder, integration, facades (D8)
 ├── test/offline/      deterministic tests (D4/D8)
 ├── test/live/         API-dependent tests
-└── transcripts/       student-annotated agent session transcripts (D5)
+└── transcripts/       consolidated + per-session agent transcripts (D5)
 ```
 
-## 3. How to run the tests
+## 3. How to run the tests and the gates
 
 ### One-time setup (project-local `.venv`, CPython 3.12)
 
-The project supports two equivalent layouts:
-
-- **vendor layout** (this local working copy): the pinned baseline is under
-  `vendor/tradingagents-0.7.x/`.
-- **root layout** (`feature-c` in the clean repository): the repository root
-  *is* the pinned 0.7.1 baseline; there is no `vendor/` copy.
+The submission tree is the **root layout**: the pinned 0.7.1 baseline *is* the
+repository root; there is no `vendor/` copy.
 
 ```bash
 uv venv --python 3.12 .venv
-
-# vendor layout:
-uv pip install --python .venv/Scripts/python.exe -e vendor/tradingagents-0.7.x
-# root layout:
-# uv pip install --python .venv/Scripts/python.exe -e . --no-deps
-
+uv pip install --python .venv/Scripts/python.exe -e . --no-deps
 uv pip install --python .venv/Scripts/python.exe -r requirements.txt
 uv pip check --python .venv/Scripts/python.exe
 ```
@@ -77,35 +88,11 @@ Reproduce the exact environment instead of resolving fresh:
 
 ```bash
 uv pip install --python .venv/Scripts/python.exe -r requirements.lock.txt
-# vendor layout:
-uv pip install --python .venv/Scripts/python.exe -e vendor/tradingagents-0.7.x --no-deps
-# root layout:
-# uv pip install --python .venv/Scripts/python.exe -e . --no-deps
+uv pip install --python .venv/Scripts/python.exe -e . --no-deps
 ```
 
-`.venv/` is local-only and is never part of the submission (see `.gitignore`).
+`.venv/` is local-only and never part of the submission (see `.gitignore`).
 Do not use the global interpreter.
-
-### Baseline pin
-
-The pinned baseline is TradingAgents 0.7.1 at commit
-`9fa1196fffbcfd9de5146d2dd2869df84ab99838` (tree
-`21197e6c24b0d5fa01076530a3f0c37863b5c555`). It lives either in
-`vendor/tradingagents-0.7.x/` (vendor layout) or at the repository root (root
-layout); `PINNED_COMMIT.txt` and `BASELINE_MANIFEST.txt` are in that baseline
-directory. Never edit the pinned files; all enhancement work lives in `src/`
-and `test/`.
-
-To confirm the baseline has not drifted (the script auto-detects the layout):
-
-```bash
-python scripts/verify_baseline.py --strict
-```
-
-- Vendor layout: 213/213 pinned files, any extra file fails.
-- Root layout: 208 pinned files verified plus 5 declared project-owned
-  overrides (`README.md`, `.gitignore`, `.env.example`, `requirements.txt`,
-  `.github/workflows/ci.yml`); project additions are allowed.
 
 ### Offline (deterministic) tests — ours
 
@@ -113,24 +100,11 @@ python scripts/verify_baseline.py --strict
 .venv/Scripts/python.exe -m pytest test/offline -m offline -q
 ```
 
-These require no API keys and must pass in CI. The suite now includes the
-context-budget configuration cases and the termination-controller cases in
-`test/offline/` (441 tests on dev); the former `NotImplementedError` placeholders
-are gone.
+No API keys; this is the suite CI runs. It includes the integration suite
+(`test/offline/test_integration_*`), the context-budget configuration contract,
+the termination controller, the structural fitness checks and the gate tests.
 
 ### Upstream baseline unit tests
-
-Vendor layout — run from inside the vendored directory so upstream's own pytest
-config applies (`testpaths=["tests"]`, `-m "not integration"`):
-
-```bash
-cd vendor/tradingagents-0.7.x
-CI=1 TRADINGAGENTS_NO_UPDATE_CHECK=1 ../../.venv/Scripts/python.exe -m pytest tests -q -m "not integration"
-```
-
-Root layout — the upstream `tests/` directory is at the repository root; select
-the upstream marker explicitly (the root `pytest.ini` keeps our `offline`/`live`
-markers and also declares `unit`/`integration`/`smoke`):
 
 ```bash
 CI=1 TRADINGAGENTS_NO_UPDATE_CHECK=1 .venv/Scripts/python.exe -m pytest tests -q -m "not integration"
@@ -146,12 +120,20 @@ different marker sets and different autouse fixtures.
 ```
 
 These call the configured LLM / data providers and require keys in `agent.env`
-(or `.env`).
+(or `.env`). `test/live/test_live_prose.py` measures a documented
+faithfulness/relevancy proxy (>= 0.6) and **skips** without a key.
 
-### Full suite (ours)
+### The blocking gates (D7)
 
 ```bash
-.venv/Scripts/python.exe -m pytest -m "offline or live"
+.venv/Scripts/python.exe scripts/verify_schema.py            # gate 3
+.venv/Scripts/python.exe -m ruff check src test scripts       # gate 2 (lint)
+.venv/Scripts/python.exe -m mypy                              # gate 2 (types)
+.venv/Scripts/python.exe scripts/check_safety_paths.py        # gate 2 (contract/security/API/permission)
+.venv/Scripts/python.exe scripts/verify_baseline.py --strict  # ADR-008
+.venv/Scripts/python.exe scripts/gate_test_approval.py --list # gate 1
+.venv/Scripts/python.exe scripts/gate_semantic_eval.py        # gate 4
+.venv/Scripts/python.exe scripts/gate_ai_use_log.py --list    # gate 6
 ```
 
 ### CLI smoke test
@@ -187,43 +169,36 @@ The integration is specified in
 `docs/architecture/adr/006-guardrail-trace-integration.md`; the full-graph
 tests are `test/offline/test_integration_end_to_end.py`.
 
-> `scripts/verify_baseline.py --strict` is a clean-tree gate. The upstream
-> suite creates ignored `pytest-of-*`, `tmp*` and cache droppings; run with
-> `PYTHONDONTWRITEBYTECODE=1`, remove only those run droppings, then run
-> `--strict`. The pinned files are never touched. In root layout the five
-> declared project-owned overrides above are reported separately; the other
-> 208 pinned files must match.
-
 ## 4. The real GitHub project
 
 - Team repository: https://github.com/jiushangxiehou/TradingAgentsUltra
-- Integration branch: `dev`
-- Project/clean branch: `feature-c`
+- Integration branch: `dev` (the submission tree)
 - Reference upstream: https://github.com/tauricresearch/tradingagents
 
 The repository holds the pinned 0.7.1 baseline at the root, the project
-additions in `src/`, `test/`, `docs/`, `prompts/` and `transcripts/`, and the
-feature branches used for the structured-debate and context-budget work.
+additions in `src/`, `test/`, `docs/`, `scripts/`, `prompts/` and
+`transcripts/`, and the feature branches used for the structured-debate and
+context-budget work.
 
 ## 5. Blocking-gate design and current status
 
-The CI workflow is `.github/workflows/ci.yml`. The intended six blocking gates
-and their current implementation status are:
+The CI workflow is `.github/workflows/ci.yml`: nine jobs — the six D7 gates,
+safety-path checks, baseline integrity and an aggregate job. Branch protection
+is a repository setting; the policy is in
+`docs/architecture/branch-protection.md`.
 
 | Gate | Design | Current status |
 |---|---|---|
-| 1. Test approval | A PR's tests must be reviewed and approved before implementation; safety-critical paths also require a review and an ADR. | **Pending**: the workflow has a note, but no automated test-approval check yet. |
-| 2. Static analysis | Lint, type check, dependency check and safety-path contract/security checks on every push. | **Partial**: `ruff check src test` and `pip check` are now blocking in CI; type checking and safety-path contract checks remain follow-ups. |
-| 3. Schema | Validate `docs/req/requirements.yaml` against `docs/req/req-schema.json`. | **Implemented** in CI; the schema check passes locally. |
-| 4. Semantic evaluation | Replay a fixed evaluation set on prompt/model changes and block on a failed threshold (faithfulness/relevancy ≥ 0.6). | **Pending**: `test/live/test_live_prose.py` is still a stub and no semantic gate job exists. |
-| 5. Regression | Run the full prior suite on every change; any regression blocks. | **Implemented** for the deterministic offline suite; the dev upstream suite is run locally. |
-| 6. AI-use log | Block a change to `src/` or `prompts/` without an `docs/ai-use-log.yaml` update. | **Implemented**, but currently checks only `HEAD^..HEAD`; widen it to the PR/push diff. |
+| 1. Test approval | Every changed test must be approved in the manifest at the base revision (`docs/test-approval.yaml`); a bootstrap fallback requires a named approver and is covered by CODEOWNERS review. | **Implemented** (`scripts/gate_test_approval.py`, 7 seeded approvals, negative tests). |
+| 2. Static analysis | `ruff`, `mypy` (scoped to `src/`, ADR-009), `pip check`, plus the safety-path checks (contract, security, API surface, permissions, structure). | **Implemented**; mypy is clean on 12 files and `check_safety_paths` is 21/21. |
+| 3. Schema | Validate `docs/req/requirements.yaml` against `docs/req/req-schema.json`. | **Implemented** in CI and locally. |
+| 4. Semantic evaluation | Replay a fixed evaluation set (`docs/eval/fixed-set.json`): prompt-constraint retention >= 0.6, 9 labelled guardrail decisions at 100%, model baseline unchanged. The live faithfulness/relevancy proxy (>= 0.6) is `test/live/test_live_prose.py`. | **Implemented** for the deterministic half; live run needs a key. |
+| 5. Regression | Offline suite + full upstream suite on every change; any regression blocks. | **Implemented**. |
+| 6. AI-use log | A code/prompt change must update `docs/ai-use-log.yaml`; the comparison covers the whole base..head range. | **Implemented** (`scripts/gate_ai_use_log.py`, 13 entries). |
+| Baseline integrity (ADR-008) | `--strict` passes on 213 pinned files with 24 **declared** differences; undeclared or stale drift fails. | **Implemented**; passes on `dev`. |
 
-**Branch protection:** `main`, `dev` and `feature-c` are not yet protected on
-GitHub. The required design is: require the blocking checks above, require a
-human review for safety-critical paths, and require an architecture decision
-for changes to the pinned baseline or the guardrail/trace contracts.
-
-> **CUI Haoyu note:** I implemented the guardrail/trace tests and the
-> `pythonpath=.` / AI-use-log CI repair; the semantic-evaluation and branch
-> protection gaps are recorded here rather than hidden.
+**Branch protection:** the workflow, `CODEOWNERS`, the PR template and the
+policy document are in the repository. Applying the GitHub settings (required
+checks + one approval + code-owner review on safety paths) is a manual owner
+step, recorded in `docs/architecture/branch-protection.md` and the debt
+register.

@@ -1,8 +1,9 @@
 # D6 · Individual Contribution and Reflection — REQ-CONTEXT-BUDGET
 
-**Student name / student ID:** To be confirmed by the author
+**Student name / student ID:** ZhuXuan (60377218)
 **GitHub account:** `zxsgdmn`
-**Relative contribution / effort:** To be completed using the team's agreed method and records.
+**Owned element:** REQ-CONTEXT-BUDGET (ADR-001 / ADR-007)
+**Source:** the individual draft is integrated into `Report.md` §6.3; this file keeps the longer draft for the record.
 
 This AI-assisted draft is for the author's review before inclusion in the team report.
 

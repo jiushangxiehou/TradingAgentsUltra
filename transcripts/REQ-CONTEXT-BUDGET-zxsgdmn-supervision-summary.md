@@ -1,7 +1,7 @@
 # REQ-CONTEXT-BUDGET · 个人开发与人工监督记录
 
 - 负责范围：TradingAgentsUltra 的上下文输入预算、压缩和模型请求发送保护。
-- 关联 GitHub 账号：`zxsgdmn`。正式姓名和学号待本人确认。
+- 成员：ZhuXuan（学号 60377218），GitHub 账号 `zxsgdmn`。
 - 记录类型：基于会话中的明确指令、本地实施日志、版本提交和测试结果整理的监督摘要。
 - 原始记录状态：旧工作区仍保留 `news-analyst-implementation-log.md` 与 `context-retrieval-budget-opencode-log.md`，可作为早期 OpenCode 工作的追溯来源。目前未取得可随本分支交付的原始 `.session.json`。本摘要不能替代课程要求的完整原始会话。
 

@@ -209,7 +209,7 @@ entries:
   - id: "009"
     date: "2026-11-25"
     session_ref: "docs/req-context-budget-acceptance.md"
-    actor: "zxsgdmn (name and student ID pending personal confirmation)"
+    actor: "ZhuXuan (60377218)"
     change: >
       Codex assisted the TradingAgents 0.7.1 migration and SDK Mock HTTP
       validation of REQ-CONTEXT-BUDGET, all-agent integration, CityU local
@@ -274,3 +274,126 @@ entries:
       A loop that repeats the same tool call should stop before its round cap;
       the change is bounded to the graph setup and a new termination module, with
       a 441-test offline suite and the full upstream suite as regression evidence.
+
+  - id: "011"
+    date: "2026-11-25"
+    session_ref: "team-lead instruction 2026-11-25 ('D7 由你自主修改完善'); no exported session — D7 was not part of the D5 evidence set"
+    actor: "CUI Haoyu"
+    change: >
+      Completed the D7 blocking gates: a test-approval gate over a base-revision
+      manifest, a semantic-evaluation gate replaying a fixed set (prompt
+      constraints, guardrail decisions, model baseline), an AI-use-log gate over
+      the whole base..head range, safety-path checks (contract, security, API
+      surface, permissions, structure), a mypy type check scoped to src/, a
+      baseline-integrity job, CODEOWNERS, a PR template and the branch-protection
+      policy. Typing-only edits in the trace boundary are recorded in ADR-009.
+    artifacts_touched:
+      - ".github/workflows/ci.yml"
+      - ".github/CODEOWNERS"
+      - ".github/pull_request_template.md"
+      - "scripts/gate_test_approval.py"
+      - "scripts/gate_semantic_eval.py"
+      - "scripts/gate_ai_use_log.py"
+      - "scripts/check_safety_paths.py"
+      - "scripts/safety_checks.py"
+      - "scripts/__init__.py"
+      - "docs/test-approval.yaml"
+      - "docs/eval/fixed-set.json"
+      - "docs/architecture/api-surface.json"
+      - "docs/architecture/branch-protection.md"
+      - "docs/architecture/adr/009-static-analysis-gate.md"
+      - "mypy.ini"
+      - "requirements.txt"
+      - "requirements.lock.txt"
+      - "src/trace_recorder.py"
+      - "src/integration/decision_adapter.py"
+      - "src/integration/trace_adapter.py"
+      - "src/integration/governed_graph.py"
+      - "test/live/test_live_prose.py"
+      - "test/offline/test_gates.py"
+      - "docs/ai-use-log.yaml"
+    human_oversight: >
+      The team lead directed the D7 completion and the verifier relaxation. The
+      review kept the relaxation declarative: only a listed file with an owner,
+      a requirement, a commit and an ADR may differ, and undeclared or stale
+      declarations still fail. The typing-only touch was limited to the trace
+      boundary; the frozen guardrail was not modified and its 39 tests pass
+      unchanged.
+    rationale: >
+      A gate that cannot fail is not a gate, and a verifier that cannot express a
+      reviewed difference can only be bypassed. The gates are therefore scripts
+      with negative tests, and the baseline difference is declared rather than
+      hidden.
+
+  - id: "012"
+    date: "2026-11-25"
+    session_ref: "team-lead instruction 2026-11-25 ('提交树为 team-app-dev', 'D8 只关注 dev 分支')"
+    actor: "CUI Haoyu"
+    change: >
+      Reconciled D8 to the dev submission tree: the element map now names the
+      runtime modules (context budget, structured debate), the two former stubs
+      became facades over those modules, the declared baseline overrides were
+      added with owners and reasons, and the verifier was relaxed to report
+      declared differences while still failing undeclared or stale drift.
+    artifacts_touched:
+      - "docs/architecture/adr/007-dev-submission-element-map.md"
+      - "docs/architecture/adr/008-declared-baseline-overrides.md"
+      - "docs/architecture/baseline-overrides.md"
+      - "docs/architecture/invariants.md"
+      - "docs/architecture/trace-matrix.md"
+      - "docs/code-governance/structural-constraints.md"
+      - "docs/architecture/baseline-overrides.md"
+      - "architecture-blueprint.md"
+      - "AGENTS.md"
+      - "README.md"
+      - "scripts/baseline-overrides.json"
+      - "scripts/element-map.json"
+      - "scripts/verify_baseline.py"
+      - "src/context_assembler.py"
+      - "src/structured_debater.py"
+      - "test/offline/test_structural_fitness.py"
+      - "docs/ai-use-log.yaml"
+    human_oversight: >
+      The team lead fixed the submission tree and required the verifier to pass
+      on dev without weakening the check. The review rejected a blanket
+      "allow-dirty" flag and required each override to name a person, a
+      requirement, a commit and an ADR. ADR-001/002 owners were set to the
+      feature owners from the team lead's instruction.
+    rationale: >
+      An architecture document that points at dead code makes every downstream
+      claim unverifiable. Declaring a difference with an owner is a decision;
+      excluding a directory from the check is a hole.
+
+  - id: "013"
+    date: "2026-11-25"
+    session_ref: "team-lead instruction 2026-11-25 (D5/D6 consolidation; member names and student IDs)"
+    actor: "CUI Haoyu"
+    change: >
+      Consolidated D5 into one labelled document (Part A CUI Haoyu 60760270 raw
+      exports; Part B Fan Hao 60835652 reconstructed session record; Part C
+      ZhuXuan 60377218 supervision summary), integrated all three members'
+      contributions and reflections into Report.md with names and student IDs,
+      and rewrote the D4 verification governance with a plan, execution record,
+      requirement-to-test map and gate map.
+    artifacts_touched:
+      - "transcripts/D5-team-session-transcripts.md"
+      - "transcripts/README.md"
+      - "transcripts/REQ-CONTEXT-BUDGET-zxsgdmn-supervision-summary.md"
+      - "docs/context-budget-reflection.md"
+      - "Report.md"
+      - "docs/d4-verification-plan.md"
+      - "docs/code-governance/verification-constraints.md"
+      - "docs/review-memo.md"
+      - "docs/debt-register.md"
+      - "docs/bug-diary.md"
+      - "docs/ai-use-log.yaml"
+    human_oversight: >
+      The team lead supplied the two missing member identities, the location of
+      the Fan Hao D5/D6 material and the requirement to label each member's part.
+      The consolidation preserves each member's own wording where it is quoted
+      and marks the two condensed reflections as needing the member's
+      confirmation. The non-raw D5 records are declared, not presented as raw.
+    rationale: >
+      D5 and D6 are about attributable evidence. A single labelled document and a
+      single report make the attribution visible, and the integrity statement
+      prevents a reconstruction from being read as a raw transcript.
