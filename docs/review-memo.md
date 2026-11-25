@@ -199,7 +199,8 @@
 - **Review unit:** `docs/d4-verification-plan.md`, `docs/code-governance/verification-constraints.md`,
   `transcripts/D5-team-session-transcripts.md`, `transcripts/README.md`,
   `Report.md` §1/§6, `docs/context-budget-reflection.md`,
-  `transcripts/REQ-CONTEXT-BUDGET-zxsgdmn-supervision-summary.md`.
+  `transcripts/60377218-ZhuXuan-supervision-summary.md`,
+  `transcripts/60835652-FanHao-session-record.md`.
 - **Spec alignment:** D5 is one labelled document with each member's part; D6 is
   one report with each member's contribution and 300–500-word reflection.
 - **Architecture alignment:** documentation only; no runtime change.

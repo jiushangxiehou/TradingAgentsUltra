@@ -57,7 +57,7 @@ The repository had the rules and the records, but three things were not true yet
 
 | Item | Result |
 |---|---|
-| D4-1 | `test/offline/test_structural_fitness.py` — 14 cases incl. element→module, facade exports, pure-module imports, owner student IDs, override completeness, D5 labels |
+| D4-1 | `test/offline/test_structural_fitness.py` — 15 cases incl. element→module, facade exports, pure-module imports, owner student IDs, override completeness, D5 labels and per-member file naming |
 | D4-2 | `test/offline/test_gates.py` — 20 cases: approval matching/glob/bootstrap rules, AI-use-log classification, semantic replay with a wrong expectation, impure-module detection, default-allow permission detection, altered-vs-declared baseline consistency, strict verifier exit code |
 | D4-3 | `docs/code-governance/verification-constraints.md` rewritten with owners and named tests |
 | D4-4 | `scripts/gate_semantic_eval.py` (deterministic replay: prompt constraints 1.00, 9/9 decisions, 0 escapes) and `test/live/test_live_prose.py` (proxy >= 0.6, skips without a key) |
@@ -68,7 +68,7 @@ The repository had the rules and the records, but three things were not true yet
 
 ```text
 $ python -m pytest test/offline -m offline -q
-475 passed                        (441 prior + 20 gate + 14 fitness)
+476 passed                        (441 prior + 20 gate + 15 fitness)
 $ python -m mypy
 Success: no issues found in 12 source files
 $ python scripts/check_safety_paths.py --quiet

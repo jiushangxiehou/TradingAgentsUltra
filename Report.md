@@ -130,7 +130,8 @@ debate nodes, `agents/state.py`, `graph/conditional_logic.py` and
 
 **Evidence.** Commit `a871245`; `tests/test_debate_opening.py` (5) and
 `tests/test_structured_agents.py` (35); the owner's contribution report and
-session record (`FANHAO/`, integrated into this report and the D5 document).
+session record (`transcripts/60835652-FanHao-session-record.md`, reproduced in
+Part B of the D5 document).
 
 **Scope limits recorded by the owner.** The convergence check is deterministic
 (no new claims, stable stances, no position change), not semantic; shadow mode
@@ -325,7 +326,7 @@ changed was the **interpretation** of existing requirements:
   five declared overrides;
 - the report's “Point 12” was clarified as 12-point font size, not a section.
 
-The AI-use log has fourteen entries spanning requirements, architecture,
+The AI-use log has fifteen entries spanning requirements, architecture,
 guardrail, trace, verification, baseline integration, module integration, the
 root-layout/CI changes, the structured-debate and context-budget implementations
 (the two feature owners' entries) and this reconciliation round. That is a requirement-history record, but the team
@@ -642,14 +643,14 @@ Overall I learned how much of agent quality lives in contracts and evidence
 rather than in wording, and how to extend a mature pipeline without breaking the
 behaviour its users depend on.
 
-*(Condensed from the member's own contribution report at `FANHAO/report-FAN
-Hao(1).md`; the member should confirm the condensation.)*
+*(Condensed from the member's own contribution report, supplied as
+`FANHAO/report-FAN Hao(1).md`; the member should confirm the condensation.)*
 
 ## 7. Verification evidence summary
 
 | Evidence | Result | Where |
 |---|---|---|
-| Deterministic offline suite | 441 passed before this reconciliation round; the gate and fitness tests bring it to 475 | `pytest test/offline -m offline -q` |
+| Deterministic offline suite | 441 passed before this reconciliation round; the gate and fitness tests bring it to 476 | `pytest test/offline -m offline -q` |
 | Full-graph end-to-end | 9 passed | `test/offline/test_integration_end_to_end.py` |
 | Dev upstream suite | 1,498 passed, 6 skipped | dev workspace |
 | Baseline, root layout | 213 pinned, 24 declared differences (5 project-owned + 19 dev), 0 undeclared, 0 stale; PASS | `scripts/verify_baseline.py --strict` |
@@ -659,7 +660,7 @@ Hao(1).md`; the member should confirm the condensation.)*
 | Safety-path checks | 21 checks, 0 failed (contract, purity, API surface, permissions, structure) | `scripts/check_safety_paths.py` |
 | Schema gate | PASS (5 requirements validated) | `scripts/verify_schema.py` |
 | Semantic-evaluation gate (deterministic) | prompt-constraint retention 1.00, decision replay 9/9, 0 escapes, model baseline unchanged | `scripts/gate_semantic_eval.py` |
-| AI-use-log gate | base..head range; 14 entries | `scripts/gate_ai_use_log.py` |
+| AI-use-log gate | base..head range; 15 entries | `scripts/gate_ai_use_log.py` |
 | Test-approval gate | 7 approvals seeded over every current test file | `scripts/gate_test_approval.py`, `docs/test-approval.yaml` |
 | Live guarded run | NVDA 2026-11-20, 14m28s, `Underweight`, guardrail PASS, 34 snapshots, 170/170 links, 0 findings, 0 capture errors | live artifacts |
 | Live prose evaluation | implemented as a faithfulness/relevancy proxy (>= 0.6); needs `DEEPSEEK_API_KEY` to produce a result | `test/live/test_live_prose.py` |
@@ -799,7 +800,7 @@ monotone decline; the remaining gaps are mostly unbuilt features and gates.
 
 | Command / evidence | Result |
 |---|---|
-| `pytest test/offline -m offline -q` | 475 passed (441 prior + 20 gate + 14 fitness) |
+| `pytest test/offline -m offline -q` | 476 passed (441 prior + 20 gate + 15 fitness) |
 | `pytest test/offline/test_integration_end_to_end.py` | 9 passed |
 | `pytest tests -q -m "not integration"` on dev | 1,498 passed, 6 skipped |
 | `pytest tests --collect-only -q` on team-app | 1,414 tests collected |
@@ -837,7 +838,7 @@ explicit evidence of absence.
 
 | Deliverable | Status (submission tree = `dev`) | Evidence / remaining gap |
 |---|---|---|
-| D1 Requirements | Complete | 5 requirements with fit criteria, priorities, sources; schema PASS; AI-use log 14 entries. No cost/governance/security-typed entry (minor coverage note). |
+| D1 Requirements | Complete | 5 requirements with fit criteria, priorities, sources; schema PASS; AI-use log 15 entries. No cost/governance/security-typed entry (minor coverage note). |
 | D2 Architecture | Complete | Blueprint, ADR-001–009, invariants, trace matrix, memory, permission, runtime catalog, evaluation table/logbook, risk list and option ledger. ADR-001/002 have named owners; ADR-007 fixes the element map; ADR-008 declares the baseline differences; ADR-009 adds the type-check gate. |
 | D3 Governance | Complete | `AGENTS.md` (submission tree, contracts, ownership), structural constraints with an enforced element map, permission model, rules/covenant and the MCP manifest. The module-to-element fitness check is now a test, not a TODO. |
 | D4 Verification | Complete for the implemented paths | Review memos, debt register, bug diary, test-to-requirement map, structural-fitness tests, gate tests, and a live prose proxy with documented thresholds. The live result still needs a key. |
@@ -855,7 +856,7 @@ explicit evidence of absence.
 | Every fit criterion has a test | Guardrail/trace/termination/context/debate rows mapped to named tests | Pass (live prose proxy included) |
 | Every invariant has a negative test | guardrail trigger tests; trace completeness tests; gate tests | Pass |
 | Every test references a requirement/invariant | Trace/guardrail test docstrings and names | Pass for owned modules |
-| Full prior suite runs with zero regressions | 475 offline + 9 E2E + upstream 1,498 | Pass for implemented paths |
+| Full prior suite runs with zero regressions | 476 offline + 9 E2E + upstream 1,498 | Pass for implemented paths |
 | New code/prompts update the AI-use log | Gate 6, whole base..head range | Pass (gate is real) |
 | Review memo per integration unit | D4 review memos for the feature-c/dev units and this reconciliation | Pass for reviewed units |
 | Debt and bug records are current | Debt register and bug diary updated with this round | Pass (ongoing) |

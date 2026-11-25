@@ -378,7 +378,7 @@ entries:
     artifacts_touched:
       - "transcripts/D5-team-session-transcripts.md"
       - "transcripts/README.md"
-      - "transcripts/REQ-CONTEXT-BUDGET-zxsgdmn-supervision-summary.md"
+      - "transcripts/60377218-ZhuXuan-supervision-summary.md"
       - "docs/context-budget-reflection.md"
       - "Report.md"
       - "docs/d4-verification-plan.md"
@@ -400,7 +400,7 @@ entries:
 
   - id: "014"
     date: "2026-11-25"
-    session_ref: "FANHAO/sessionlog-FAN Hao.md (owner-supplied session record) and FANHAO/report-FAN Hao(1).md; raw OpenCode export not available — declared in transcripts/D5-team-session-transcripts.md"
+    session_ref: "transcripts/60835652-FanHao-session-record.md (owner-supplied retrospective record; the team copy came from FANHAO/sessionlog-FAN Hao.md) and FANHAO/report-FAN Hao(1).md (contribution report); raw OpenCode export not available — declared in transcripts/D5-team-session-transcripts.md"
     actor: "Fan Hao (60835652)"
     change: >
       Implemented REQ-STRUCTURED-DEBATE: the typed turn protocol (DebateTurn,
@@ -448,3 +448,38 @@ entries:
       commit's git author identity is the repository's configured account;
       requirement ownership and story points are assigned to Fan Hao (60835652)
       by the team, as recorded in Report.md §1.
+  - id: "015"
+    date: "2026-11-25"
+    session_ref: "team-lead instruction 2026-11-25 ('与project项目原文件项目结构进行复核，确保严格符合交付要求')"
+    actor: "CUI Haoyu"
+    change: >
+      Aligned the submission package with the brief Section 5 tree: renamed the
+      ZhuXuan record to the required <student-id>-<name>.md form, added Fan Hao
+      session record as 60835652-FanHao-session-record.md, updated every
+      reference to both paths, added the full-suite command and a D8
+      source-mapping note to README.md, added src/README.md with the element
+      map, and extended the structural fitness test to require a
+      <student-id>-<name>.md file for each member.
+    artifacts_touched:
+      - "transcripts/60377218-ZhuXuan-supervision-summary.md"
+      - "transcripts/60835652-FanHao-session-record.md"
+      - "transcripts/D5-team-session-transcripts.md"
+      - "transcripts/README.md"
+      - "README.md"
+      - "src/README.md"
+      - "test/offline/test_structural_fitness.py"
+      - "Report.md"
+      - "docs/review-memo.md"
+      - "docs/context-budget-reflection.md"
+      - "docs/d4-verification-plan.md"
+      - "docs/ai-use-log.yaml"
+    human_oversight: >
+      The team lead asked for a strict check against the Section 5 tree. The
+      review kept the records honest: the two renamed/added files are the same
+      non-raw records already declared in the D5 integrity statement, not new
+      evidence, and the consolidated document still carries the English
+      rendering and the fidelity warning.
+    rationale: >
+      Section 5 names transcripts as <student-id>-<name>.md, and a package that
+      misses that naming fails a check a grader will run mechanically. The
+      change is structural, not a claim of new raw evidence.

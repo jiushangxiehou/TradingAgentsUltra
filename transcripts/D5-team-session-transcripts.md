@@ -25673,7 +25673,8 @@ itself: the user prompts are rephrased and the assistant answers are condensed.
 It is the record the owner supplied for D5; the raw export is not in the
 repository (see the integrity statement and the debt register).
 
-> Source file: the team copy in `FANHAO/sessionlog-FAN Hao.md` (565 lines).
+> Source file: `transcripts/60835652-FanHao-session-record.md` (the record the
+> owner supplied; the team copy came from `FANHAO/sessionlog-FAN Hao.md`).
 > Reproduced as supplied; headings demoted two levels.
 
 ### Structured Debate and Termination: Key Session Records
@@ -26257,7 +26258,7 @@ intervention, its reason and the commits/reports that can be checked against
 the repository. Treat it as a pointer to verifiable artefacts, not as a raw
 transcript.
 
-> Source file: `transcripts/REQ-CONTEXT-BUDGET-zxsgdmn-supervision-summary.md`
+> Source file: `transcripts/60377218-ZhuXuan-supervision-summary.md`
 > (24 lines, Chinese). **Translated into English** for this consolidated
 > document; the Chinese original is kept at that path.
 

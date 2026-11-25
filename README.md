@@ -67,8 +67,18 @@ and enforced by `scripts/verify_baseline.py` (ADR-008).
 ├── src/               guardrail, trace recorder, integration, facades (D8)
 ├── test/offline/      deterministic tests (D4/D8)
 ├── test/live/         API-dependent tests
-└── transcripts/       consolidated + per-session agent transcripts (D5)
+└── transcripts/       consolidated document + per-member records (D5)
 ```
+
+> **Where the application source is (D8).** The submission tree is the pinned
+> TradingAgents 0.7.1 baseline at the repository root — `tradingagents/` (agents,
+> graph, dataflows, memory, llm clients) and `cli/` — plus the project's `src/`
+> layer, which owns the governance elements (guardrail, trace recorder,
+> integration, and the facades over the context-budget and structured-debate
+> runtimes). `test/offline/` and `test/live/` hold the project tests; `tests/` is
+> the pinned baseline's own suite and is the regression gate. The mapping is
+> recorded in [ADR-007](docs/architecture/adr/007-dev-submission-element-map.md)
+> and summarised in [`src/README.md`](src/README.md).
 
 ## 3. How to run the tests and the gates
 
@@ -122,6 +132,15 @@ different marker sets and different autouse fixtures.
 These call the configured LLM / data providers and require keys in `agent.env`
 (or `.env`). `test/live/test_live_prose.py` measures a documented
 faithfulness/relevancy proxy (>= 0.6) and **skips** without a key.
+
+### Full suite (offline + live)
+
+```bash
+.venv/Scripts/python.exe -m pytest -m "offline or live"
+```
+
+This is the complete project suite. The live half needs the keys above; the
+offline half is what CI runs on every push.
 
 ### The blocking gates (D7)
 
@@ -194,7 +213,7 @@ is a repository setting; the policy is in
 | 3. Schema | Validate `docs/req/requirements.yaml` against `docs/req/req-schema.json`. | **Implemented** in CI and locally. |
 | 4. Semantic evaluation | Replay a fixed evaluation set (`docs/eval/fixed-set.json`): prompt-constraint retention >= 0.6, 9 labelled guardrail decisions at 100%, model baseline unchanged. The live faithfulness/relevancy proxy (>= 0.6) is `test/live/test_live_prose.py`. | **Implemented** for the deterministic half; live run needs a key. |
 | 5. Regression | Offline suite + full upstream suite on every change; any regression blocks. | **Implemented**. |
-| 6. AI-use log | A code/prompt change must update `docs/ai-use-log.yaml`; the comparison covers the whole base..head range. | **Implemented** (`scripts/gate_ai_use_log.py`, 14 entries). |
+| 6. AI-use log | A code/prompt change must update `docs/ai-use-log.yaml`; the comparison covers the whole base..head range. | **Implemented** (`scripts/gate_ai_use_log.py`, 15 entries). |
 | Baseline integrity (ADR-008) | `--strict` passes on 213 pinned files with 24 **declared** differences; undeclared or stale drift fails. | **Implemented**; passes on `dev`. |
 
 **Branch protection:** the workflow, `CODEOWNERS`, the PR template and the

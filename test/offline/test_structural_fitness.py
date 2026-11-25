@@ -149,3 +149,13 @@ def test_d5_consolidated_document_exists_and_labels_every_member():
         ("Fan Hao", "60835652"),
     ):
         assert name in text and student_id in text, f"D5 does not label {name} ({student_id})"
+
+
+def test_every_member_has_a_transcript_with_the_required_file_name():
+    """Section 5 of the brief: transcripts are named `<student-id>-<name>.md`."""
+    files = [p.name for p in (ROOT / "transcripts").glob("*.md")]
+    pattern = re.compile(r"^\d{8}-[A-Za-z].*\.md$")
+    for student_id in ("60760270", "60835652", "60377218"):
+        matches = [name for name in files if name.startswith(student_id + "-")]
+        assert matches, f"no <student-id>-<name>.md transcript for {student_id}"
+        assert all(pattern.match(name) for name in matches), matches

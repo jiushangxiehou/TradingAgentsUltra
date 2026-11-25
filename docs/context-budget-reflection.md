@@ -16,7 +16,7 @@ I was responsible for REQ-CONTEXT-BUDGET, which controls the input assembled for
 | Budget core and 0.7.1 migration | [Core implementation commit](https://github.com/jiushangxiehou/TradingAgentsUltra/commit/f20c6c9e76ff3cd30d3e410c30c07dedad4aed49) |
 | All-agent integration and request/transport tests | [Agent integration commit](https://github.com/jiushangxiehou/TradingAgentsUltra/commit/3313ad0fed6e2a97ef52068733e4c68edb50deb5) |
 | CityU local estimation and personal acceptance | [Implementation commit](https://github.com/jiushangxiehou/TradingAgentsUltra/commit/7de8935684c769515e50fa81690252620d091c80) · [Acceptance report](req-context-budget-acceptance.md) |
-| Delivery documentation and human oversight evidence | [Team documentation commit](https://github.com/jiushangxiehou/TradingAgentsUltra/commit/df4ce0bc8af009eda7852701ef94061e57f522d0) · [Personal supervision summary](../transcripts/REQ-CONTEXT-BUDGET-zxsgdmn-supervision-summary.md) |
+| Delivery documentation and human oversight evidence | [Team documentation commit](https://github.com/jiushangxiehou/TradingAgentsUltra/commit/df4ce0bc8af009eda7852701ef94061e57f522d0) · [Personal supervision summary](../transcripts/60377218-ZhuXuan-supervision-summary.md) |
 
 ## Individual reflection (English)
 
