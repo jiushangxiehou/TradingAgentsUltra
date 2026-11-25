@@ -15,6 +15,9 @@ class InvestDebateState(TypedDict):
     history: Annotated[str, "Conversation history"]
     current_response: Annotated[str, "Latest response"]
     count: Annotated[int, "Length of the current conversation"]
+    turns: Annotated[list[dict], "Validated structured debate turns"]
+    metrics: Annotated[dict, "Deterministic debate quality metrics"]
+    termination: Annotated[dict, "Debate termination policy decision"]
 
 
 # Risk management team state
@@ -40,6 +43,9 @@ class RiskDebateState(TypedDict):
         str, "Latest response by the neutral analyst"
     ]
     count: Annotated[int, "Length of the current conversation"]
+    turns: Annotated[list[dict], "Validated structured debate turns"]
+    metrics: Annotated[dict, "Deterministic debate quality metrics"]
+    termination: Annotated[dict, "Debate termination policy decision"]
 
 
 class AgentState(MessagesState):

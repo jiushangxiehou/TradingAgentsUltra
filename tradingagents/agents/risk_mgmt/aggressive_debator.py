@@ -5,13 +5,27 @@ from tradingagents.agents.context import (
     opponent_argument_or_opening,
     report_or_absent,
 )
+from tradingagents.dataflows.config import get_config
+from tradingagents.debate.engine import (
+    bind_debate_turn,
+    debate_audits,
+    evaluate_termination,
+    render_prior_turns,
+    run_debate_turn,
+)
+from tradingagents.debate.evidence import build_evidence_registry, render_evidence_catalog
 
 
 def create_aggressive_debator(llm):
+    structured_llm = bind_debate_turn(llm, "Aggressive Risk Analyst")
+
     def aggressive_node(state) -> dict:
         risk_debate_state = state["risk_debate_state"]
         history = risk_debate_state.get("history", "")
         aggressive_history = risk_debate_state.get("aggressive_history", "")
+        previous_audits = debate_audits(risk_debate_state)
+        evidence = build_evidence_registry(state)
+        round_number = risk_debate_state["count"] // 3 + 1
 
         current_conservative_response = opponent_argument_or_opening(
             risk_debate_state.get("current_conservative_response", ""), "conservative analyst"
@@ -43,15 +57,46 @@ Latest World Affairs Report: {news_report}
 Company Fundamentals Report: {fundamentals_report}
 Here is the current conversation history: {history} Here are the last arguments from the conservative analyst: {current_conservative_response} Here are the last arguments from the neutral analyst: {current_neutral_response}. If there are no responses from the other viewpoints yet, present your own argument based on the available data.
 
+## Evidence catalog
+Use only these evidence IDs in claim and rebuttal `evidence_refs`.
+{render_evidence_catalog(evidence)}
+
+## Structured turn requirement
+Return one DebateTurn with round, speaker, stance, thesis, claims, rebuttals,
+concessions, open_questions, changed_position, and confidence.
+Rebuttal targets must refer only to claim IDs in the recent validated turns.
+Do not invent claim or evidence IDs.
+
+## Recent validated turns
+{render_prior_turns(previous_audits)}
+
 Engage actively by addressing any specific concerns raised, refuting the weaknesses in their logic, and asserting the benefits of risk-taking to outpace market norms. Maintain a focus on debating and persuading, not just presenting data. Challenge each counterpoint to underscore why a high-risk approach is optimal. Output conversationally as if you are speaking without any special formatting.""" + get_language_instruction()
 
-        response = llm.invoke(prompt)
-
-        argument = f"Aggressive Analyst: {response.content}"
+        audit, rendered = run_debate_turn(
+            structured_llm=structured_llm,
+            plain_llm=llm,
+            prompt=prompt,
+            speaker="Aggressive Analyst",
+            round_number=round_number,
+            sequence=risk_debate_state["count"] + 1,
+            debate_state=risk_debate_state,
+            evidence=evidence,
+        )
+        next_audits = previous_audits + [audit]
+        config = get_config()
+        termination = evaluate_termination(
+            debate_type="risk",
+            audits=next_audits,
+            participants=3,
+            max_rounds=max(1, int(config["max_risk_discuss_rounds"])),
+            config=config,
+        )
+        summary = audit.turn.thesis if audit.turn is not None else audit.raw_output[:500]
+        argument = f"Aggressive Analyst: {summary}"
 
         new_risk_debate_state = {
-            "history": history + "\n" + argument,
-            "aggressive_history": aggressive_history + "\n" + argument,
+            "history": (history + "\n\n" + rendered).strip(),
+            "aggressive_history": (aggressive_history + "\n\n" + rendered).strip(),
             "conservative_history": risk_debate_state.get("conservative_history", ""),
             "neutral_history": risk_debate_state.get("neutral_history", ""),
             "latest_speaker": "Aggressive",
@@ -61,6 +106,9 @@ Engage actively by addressing any specific concerns raised, refuting the weaknes
                 "current_neutral_response", ""
             ),
             "count": risk_debate_state["count"] + 1,
+            "turns": [item.model_dump(mode="json") for item in next_audits],
+            "metrics": termination.metrics,
+            "termination": termination.model_dump(mode="json"),
         }
 
         return {"risk_debate_state": new_risk_debate_state}

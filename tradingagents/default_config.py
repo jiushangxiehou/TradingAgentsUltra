@@ -31,6 +31,11 @@ _ENV_OVERRIDES = {
     "TRADINGAGENTS_GOOGLE_THINKING_LEVEL":   "google_thinking_level",
     "TRADINGAGENTS_OPENAI_REASONING_EFFORT": "openai_reasoning_effort",
     "TRADINGAGENTS_ANTHROPIC_EFFORT":        "anthropic_effort",
+    "TRADINGAGENTS_DEBATE_EARLY_TERMINATION": "debate_early_termination",
+    "TRADINGAGENTS_DEBATE_SHADOW_MODE":      "debate_shadow_mode",
+    "TRADINGAGENTS_DEBATE_MIN_ROUNDS":       "debate_min_rounds",
+    "TRADINGAGENTS_DEBATE_CONVERGENCE_CYCLES": "debate_convergence_cycles",
+    "TRADINGAGENTS_DEBATE_MAX_SCHEMA_FAILURES": "debate_max_schema_failures",
 }
 
 
@@ -132,6 +137,13 @@ def build_default_config() -> dict:
         # Debate and discussion settings
         "max_debate_rounds": 1,
         "max_risk_discuss_rounds": 1,
+        # Structured debate quality and termination policy. Shadow Mode records
+        # what the policy would stop while preserving the original round limit.
+        "debate_early_termination": False,
+        "debate_shadow_mode": True,
+        "debate_min_rounds": 1,
+        "debate_convergence_cycles": 2,
+        "debate_max_schema_failures": 2,
         "max_recur_limit": 100,
         # Rounds of tool calls an analyst may make before it is asked for its report.
         "max_tool_rounds": 20,

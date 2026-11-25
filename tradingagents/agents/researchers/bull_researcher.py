@@ -4,13 +4,27 @@ from tradingagents.agents.context import (
     opponent_argument_or_opening,
     report_or_absent,
 )
+from tradingagents.dataflows.config import get_config
+from tradingagents.debate.engine import (
+    bind_debate_turn,
+    debate_audits,
+    evaluate_termination,
+    render_prior_turns,
+    run_debate_turn,
+)
+from tradingagents.debate.evidence import build_evidence_registry, render_evidence_catalog
 
 
 def create_bull_researcher(llm):
+    structured_llm = bind_debate_turn(llm, "Bull Researcher")
+
     def bull_node(state) -> dict:
         investment_debate_state = state["investment_debate_state"]
         history = investment_debate_state.get("history", "")
         bull_history = investment_debate_state.get("bull_history", "")
+        previous_audits = debate_audits(investment_debate_state)
+        evidence = build_evidence_registry(state)
+        round_number = investment_debate_state["count"] // 2 + 1
 
         current_response = opponent_argument_or_opening(
             investment_debate_state.get("current_response", ""), "bear analyst"
@@ -45,19 +59,54 @@ Latest world affairs news: {news_report}
 {fundamentals_label}: {fundamentals_report}
 Conversation history of the debate: {history}
 Last bear argument: {current_response}
+
+## Evidence catalog
+Use only these evidence IDs in claim and rebuttal `evidence_refs`.
+{render_evidence_catalog(evidence)}
+
+## Structured turn requirement
+Return one DebateTurn with round, speaker, stance, thesis, claims, rebuttals,
+concessions, open_questions, changed_position, and confidence.
+Rebuttal targets must refer only to claim IDs in the recent validated turns.
+Do not invent claim or evidence IDs.
+
+## Recent validated turns
+{render_prior_turns(previous_audits)}
+
 Use this information to deliver a compelling bull argument, refute the bear's concerns, and engage in a dynamic debate that demonstrates the strengths of the bull position.
 """ + get_language_instruction()
 
-        response = llm.invoke(prompt)
-
-        argument = f"Bull Analyst: {response.content}"
+        audit, rendered = run_debate_turn(
+            structured_llm=structured_llm,
+            plain_llm=llm,
+            prompt=prompt,
+            speaker="Bull Analyst",
+            round_number=round_number,
+            sequence=investment_debate_state["count"] + 1,
+            debate_state=investment_debate_state,
+            evidence=evidence,
+        )
+        next_audits = previous_audits + [audit]
+        config = get_config()
+        termination = evaluate_termination(
+            debate_type="research",
+            audits=next_audits,
+            participants=2,
+            max_rounds=max(1, int(config["max_debate_rounds"])),
+            config=config,
+        )
+        summary = audit.turn.thesis if audit.turn is not None else audit.raw_output[:500]
+        argument = f"Bull Analyst: {summary}"
 
         new_investment_debate_state = {
-            "history": history + "\n" + argument,
-            "bull_history": bull_history + "\n" + argument,
+            "history": (history + "\n\n" + rendered).strip(),
+            "bull_history": (bull_history + "\n\n" + rendered).strip(),
             "bear_history": investment_debate_state.get("bear_history", ""),
             "current_response": argument,
             "count": investment_debate_state["count"] + 1,
+            "turns": [item.model_dump(mode="json") for item in next_audits],
+            "metrics": termination.metrics,
+            "termination": termination.model_dump(mode="json"),
         }
 
         return {"investment_debate_state": new_investment_debate_state}

@@ -64,6 +64,9 @@ Write these sections, in this order, starting with the recommendation on its own
             "bull_history": investment_debate_state.get("bull_history", ""),
             "current_response": investment_plan,
             "count": investment_debate_state["count"],
+            "turns": investment_debate_state.get("turns", []),
+            "metrics": investment_debate_state.get("metrics", {}),
+            "termination": investment_debate_state.get("termination", {}),
         }
 
         return {
