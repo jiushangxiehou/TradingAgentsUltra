@@ -25,6 +25,8 @@ _ENV_OVERRIDES = {
     "TRADINGAGENTS_TEMPERATURE":          "temperature",
     "TRADINGAGENTS_LLM_MAX_RETRIES":      "llm_max_retries",
     "TRADINGAGENTS_MAX_TOKENS":           "max_tokens",
+    "TRADINGAGENTS_CONTEXT_INPUT_HARD_CAP_TOKENS": "context_input_hard_cap_tokens",
+    "TRADINGAGENTS_CONTEXT_INPUT_COMPACTION_THRESHOLD_TOKENS": "context_input_compaction_threshold_tokens",
     # Provider-specific reasoning/thinking knobs (None = each provider's own
     # default). Settable here for non-interactive runs; the CLI also offers an
     # interactive choice, which is skipped when the matching var is set.

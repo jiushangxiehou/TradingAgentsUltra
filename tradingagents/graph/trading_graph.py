@@ -70,7 +70,8 @@ class TradingAgentsGraph:
             config: Configuration dictionary. If None, uses default config
             callbacks: Optional list of callback handlers (e.g., for tracking LLM/tool stats)
             context_adapters: Approved offline-counting adapters keyed by quick/deep tier.
-                Missing or unverifiable adapters cannot send when budgeting is enabled.
+                If no override is supplied, the existing CityU DeepSeek pair uses
+                a local estimate. Other unsupported budget paths block model calls.
         """
         self.debug = debug
         self.config = dict(config or DEFAULT_CONFIG)
@@ -128,8 +129,18 @@ class TradingAgentsGraph:
 
     def _tier_model(self, tier, extra):
         if self._budget_enabled:
+            model_name = self.config[f"{tier}_think_llm"]
+            if tier not in self._context_adapters and tier_provider(self.config, tier) == "deepseek":
+                from tradingagents.llm_clients.deepseek_context_adapter import (
+                    DeepSeekProviderAdapter,
+                )
+                from tradingagents.llm_clients.factory import tier_backend_url
+
+                self._context_adapters[tier] = DeepSeekProviderAdapter.cityu_local_estimate(
+                    model_name, tier_backend_url(self.config, tier)
+                )
             adapter = self._context_adapters.get(tier)
-            if adapter is None or not _adapter_supports(adapter, self.config[f"{tier}_think_llm"]):
+            if adapter is None or not _adapter_supports(adapter, model_name):
                 # Avoid initializing credentials/SDKs for blocked budget paths.
                 return None
         return create_tier_client(self.config, tier, **extra).get_llm()
@@ -182,6 +193,7 @@ class TradingAgentsGraph:
                 (
                     tier, type(adapter).__module__, type(adapter).__qualname__,
                     getattr(adapter, "counter_revision", None),
+                    getattr(adapter, "counter_exact", None),
                     _adapter_supports(adapter, self.config[f"{tier}_think_llm"]),
                 )
                 for tier in ("quick", "deep")

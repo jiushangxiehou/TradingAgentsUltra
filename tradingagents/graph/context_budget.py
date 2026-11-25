@@ -14,12 +14,12 @@ A real hard cap can only be proven against the *exact* request that is sent. So
 counting and sending MUST go through ONE injected provider adapter:
 
     request = adapter.prepare(formatted_messages, bound_model)  # exact provider request
-    tokens  = adapter.count(request)                            # exact, provider-verified
+    tokens  = adapter.count(request)                            # declared budget units
     reply   = adapter.send(request)                             # the SAME request
 
-The adapter is provider-specific and is the only trusted source of an exact
-count. LangChain's post-call ``usage_metadata``, a bare ``tiktoken`` encode, and
-character estimates do NOT satisfy this contract. If no adapter is supplied (or
+The adapter counts the actual prepared request using its declared policy.
+The CityU local estimate is a separate policy and does not claim provider
+accuracy. Post-call ``usage_metadata`` cannot authorize a send. If no adapter is supplied (or
 the adapter reports the model/format unsupported), the budget **fails closed**
 with :class:`ContextBudgetBlocked` and the model is never called.
 
@@ -143,8 +143,12 @@ class ProviderAdapter(Protocol):
         include. It must not mutate ``formatted_messages``.
       * ``supports(model)`` returns True only when the adapter can both count and
         send for that exact model. False => caller fails closed.
-      * ``count(request)`` returns the exact input-token count of ``request`` or
-        raises :class:`UnverifiableCountError`.
+      * ``count(request)`` returns the input-budget count for the prepared request.
+        Exact counters return the provider's input-token count. The CityU local
+        estimator counts UTF-8 bytes of the frozen request body as budget units
+        and declares ``counter_exact=False``; these units are a local estimate,
+        not provider token usage. Raise :class:`UnverifiableCountError` when the
+        configured counting policy cannot produce a valid count.
       * ``send(request)`` sends that exact ``request`` and returns the model
         reply. A prepared request exposes immutable ``body: bytes``. The transport
         must consume ``require_authorized_send(self, request)`` exactly once and
@@ -801,7 +805,7 @@ def _adapter_supports(adapter: ProviderAdapter, model_name: str) -> bool:
 
 
 def _safe_count(adapter: ProviderAdapter, request: Any) -> int | None:
-    """Return the exact count or None. Never logs request content or exception text."""
+    """Return the local budget count or None without logging request contents."""
     try:
         value = adapter.count(request)
     except UnverifiableCountError:

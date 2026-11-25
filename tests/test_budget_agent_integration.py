@@ -486,3 +486,102 @@ def test_intraday_cutoff_uses_utc_instant_before_sdk_send(monkeypatch, tmp_path)
         boundary.invoke_budget(messages, cutoff="2026-01-02T09:00:00Z")
     assert len(sent) == 1
     assert b"news-before" in sent[0] and b"news-after" not in sent[0]
+
+
+def test_cityu_auto_estimate_compacts_and_enforces_local_cap(monkeypatch, tmp_path, caplog):
+    from dataclasses import replace
+
+    from langchain_core.messages import AIMessage, ToolMessage
+
+    from tradingagents.llm_clients.openai_client import OPENAI_COMPATIBLE_PROVIDERS
+
+    wire = []
+
+    def transport(request):
+        assert request.url.path == "/v1/chat/completions"
+        wire.append(request.content)
+        return _response({"role": "assistant", "content": "Local budget report"})
+
+    monkeypatch.setattr(TradingAgentsGraph, "_memory_step", lambda self, state: {"past_context": ""})
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "synthetic-ci-placeholder")
+    cfg = DEFAULT_CONFIG | {
+        "llm_provider": "openai",
+        "quick_think_provider": "deepseek", "deep_think_provider": "deepseek",
+        "quick_think_llm": MODEL, "deep_think_llm": MODEL,
+        "quick_think_backend_url": CITYU_BASE, "deep_think_backend_url": CITYU_BASE,
+        "results_dir": str(tmp_path / "results"), "data_cache_dir": str(tmp_path / "data"),
+        "memory_log_path": str(tmp_path / "memory.md"),
+    }
+
+    def exchange(call_id):
+        return [
+            AIMessage(content="", tool_calls=[{
+                "id": call_id, "name": "get_news",
+                "args": {"start_date": "2025-12-31", "end_date": "2026-01-02"},
+            }]),
+            ToolMessage(content="来源 A：ACME 新闻", tool_call_id=call_id),
+        ]
+
+    user = HumanMessage(content="Keep ticker ACME, portfolio absent, as-of 2026-01-02.")
+
+    def run(cap, messages):
+        graph = TradingAgentsGraph(
+            selected_analysts=("news",),
+            config=cfg | {
+                "context_input_hard_cap_tokens": cap,
+                "context_input_compaction_threshold_tokens": cap,
+            },
+        )
+        return graph.workflow.compile(interrupt_before=["Bull Researcher"]).invoke({
+            "company_of_interest": "ACME", "trade_date": "2026-01-02", "messages": messages,
+        })
+
+    with httpx.Client(transport=httpx.MockTransport(transport)) as client:
+        def make_model(**kwargs):
+            return DeepSeekChatOpenAI(http_client=client, **kwargs)
+
+        spec = OPENAI_COMPATIBLE_PROVIDERS["deepseek"]
+        monkeypatch.setitem(OPENAI_COMPATIBLE_PROVIDERS, "deepseek", replace(spec, chat_class=make_model))
+        with caplog.at_level("INFO", logger="tradingagents.graph.budgeted_model"):
+            run(99_000, [user, *exchange("one")])
+            exact_local_cap = len(wire[0])
+            result = run(exact_local_cap, [user, *exchange("one"), *exchange("two")])
+            with pytest.raises(ContextBudgetBlocked) as error:
+                run(exact_local_cap - 1, [user, *exchange("one"), *exchange("two")])
+
+    assert result["news_report"] == "Local budget report"
+    assert len(wire) == 2 and wire[0] == wire[1]
+    assert "来源 A".encode() in wire[1]
+    assert error.value.diagnostic.count_after == exact_local_cap
+    calls = [entry.args for entry in caplog.records if entry.msg == "agent_input_budget %s"]
+    assert [call["compaction_passes"] for call in calls] == [0, 1, 1]
+    assert [call["allowed_send"] for call in calls] == [True, True, False]
+    assert calls[1]["count_before"] > exact_local_cap
+    assert calls[1]["deduped_blocks"] == 1
+    assert all(call["count_after"] == exact_local_cap for call in calls)
+    assert all(call["counter_exact"] is False for call in calls)
+    assert all(call["count_unit"] == "local_token_estimate" for call in calls)
+
+
+@pytest.mark.parametrize("name,url", [
+    ("different-model", CITYU_BASE),
+    (CITYU_MODEL, "https://example.invalid/v1"),
+    (CITYU_MODEL, None),
+])
+def test_cityu_estimate_is_not_installed_for_another_model_or_endpoint(name, url):
+    assert DeepSeekProviderAdapter.cityu_local_estimate(name, url) is None
+
+
+def test_cityu_local_budget_uses_existing_environment_overlay(monkeypatch):
+    from tradingagents.default_config import build_default_config
+    from tradingagents.graph.context_budget import resolve_budget
+
+    monkeypatch.setenv("TRADINGAGENTS_CONTEXT_INPUT_HARD_CAP_TOKENS", "8000")
+    monkeypatch.setenv("TRADINGAGENTS_CONTEXT_INPUT_COMPACTION_THRESHOLD_TOKENS", "6000")
+    monkeypatch.setenv("TRADINGAGENTS_MAX_TOKENS", "250")
+    cfg = build_default_config()
+    assert resolve_budget(cfg) == (8000, 6000)
+    assert int(cfg["max_tokens"]) == 250
+    monkeypatch.setenv("TRADINGAGENTS_CONTEXT_INPUT_COMPACTION_THRESHOLD_TOKENS", "8001")
+    with pytest.raises(ValueError, match="compaction threshold"):
+        resolve_budget(build_default_config())

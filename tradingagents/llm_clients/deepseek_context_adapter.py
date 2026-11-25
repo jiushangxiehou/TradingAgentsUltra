@@ -42,7 +42,7 @@ class DeepSeekProviderAdapter:
     """Reuse the configured client; enable counting only with an explicit counter.
 
     Only the budget's scoped authorization can unlock the transport.
-    No production counter is supplied here.
+    The CityU factory supplies a local, explicitly non-exact estimate.
     """
 
     def __init__(
@@ -52,6 +52,7 @@ class DeepSeekProviderAdapter:
         *,
         counter_revision: str | None = None,
         base_url: str | None = None,
+        counter_exact: bool = True,
     ):
         self.base_url = (base_url or _OFFICIAL_BASE).rstrip("/")
         if self.base_url != _OFFICIAL_BASE and (self.base_url, model_name) != (CITYU_BASE, CITYU_MODEL):
@@ -59,6 +60,22 @@ class DeepSeekProviderAdapter:
         self.model_name = model_name
         self._counter = counter
         self.counter_revision = counter_revision
+        self.counter_exact = counter_exact
+
+    @classmethod
+    def cityu_local_estimate(cls, model_name: str, base_url: str | None):
+        """Use the complete wire body's UTF-8 byte length as a local estimate.
+
+        One budget unit per byte includes JSON framing and all request fields.
+        The estimate does not claim an upper bound for the server's tokenizer
+        or for additional content the gateway may insert.
+        """
+        if model_name != CITYU_MODEL or (base_url or "").rstrip("/") != CITYU_BASE:
+            return None
+        return cls(
+            model_name, _estimate_wire_tokens, counter_revision="cityu-wire-bytes-v1",
+            base_url=base_url, counter_exact=False,
+        )
 
     def supports(self, model: str) -> bool:
         return bool(callable(self._counter) and self.counter_revision and model == self.model_name)
@@ -157,3 +174,8 @@ class DeepSeekProviderAdapter:
         ]
         run.on_llm_end(LLMResult(generations=[safe_generations]))
         return normalize_content(result.generations[0].message)
+
+
+
+def _estimate_wire_tokens(request: PreparedDeepSeekRequest) -> int:
+    return len(request.body)

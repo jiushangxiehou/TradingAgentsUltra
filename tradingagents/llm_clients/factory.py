@@ -139,6 +139,14 @@ def tier_provider(config: dict, tier: str) -> str:
     return (config.get(f"{tier}_think_provider") or config["llm_provider"]).lower()
 
 
+def tier_backend_url(config: dict, tier: str) -> str | None:
+    """The configured tier endpoint, before the provider's own default."""
+    explicit = config.get(f"{tier}_think_backend_url")
+    if tier_provider(config, tier) == config["llm_provider"].lower():
+        return explicit or config.get("backend_url")
+    return explicit
+
+
 def create_tier_client(config: dict, tier: str, **extra) -> BaseLLMClient:
     """The client for the ``quick`` or ``deep`` model tier (#1440).
 
@@ -147,10 +155,7 @@ def create_tier_client(config: dict, tier: str, **extra) -> BaseLLMClient:
     else the provider's default: ``backend_url`` belongs to ``llm_provider``.
     """
     provider = tier_provider(config, tier)
-    if provider == config["llm_provider"].lower():
-        base_url = config.get(f"{tier}_think_backend_url") or config.get("backend_url")
-    else:
-        base_url = config.get(f"{tier}_think_backend_url")
+    base_url = tier_backend_url(config, tier)
     kwargs = build_llm_kwargs({**config, "llm_provider": provider})
     return create_llm_client(provider=provider, model=config[f"{tier}_think_llm"], base_url=base_url,
                              **kwargs, **extra)

@@ -2,11 +2,11 @@
 
 ## 配置、计数和请求保护
 
-在 TradingAgentsGraph 的 config 中设置 context_input_hard_cap_tokens 与 context_input_compaction_threshold_tokens。两项都默认为 None；显式启用时均须为正整数，阈值不高于硬上限。仅支持项目的 Python 配置字典传递，本次没有新增环境变量。max_tokens 保持输出上限语义。
+在 TradingAgentsGraph 的 config 中设置 context_input_hard_cap_tokens 与 context_input_compaction_threshold_tokens。两项都默认为 None；显式启用时均须为正整数，阈值不高于硬上限。可经项目的 Python 配置字典传递，或使用现有环境覆盖机制的 TRADINGAGENTS_CONTEXT_INPUT_HARD_CAP_TOKENS 与 TRADINGAGENTS_CONTEXT_INPUT_COMPACTION_THRESHOLD_TOKENS。max_tokens 保持输出上限语义。
 
-构造 Graph 时通过 context_adapters 按 quick/deep 传入已认可的计数适配器。未配置或不支持相应模型时，启用预算会阻止模型请求，并且不初始化该 tier 的 SDK 客户端。当前没有随项目发布的真实 Token 计数器。
+构造 Graph 时可通过 context_adapters 按 quick/deep 显式注入计数适配器。启用预算且未提供覆盖时，现有 CityU DeepSeek 的端点和模型组合自动使用本地估算。其余未配置或不支持相应模型的预算路径阻断模型请求，并且不初始化该 tier 的 SDK。关闭预算时模型工厂和认证路径保持原状。
 
-计数与发送以完整最终请求为单位。工具 schema、系统提示、历史、约束和实际模型字段保留在准备后的请求中。最多一次整理和两次计数。一次性许可绑定 Adapter、对象、正文及 SHA-256；传输必须消费许可并直接使用返回的 bytes。当前经过验证的适配器不自动重试。诊断为内容安全的计数字段、原因、节点名称和模型名称。计数器的准确性属于适配器契约，Mock 仅验证该机制和发送边界。
+计数与发送以完整最终请求为单位。工具 schema、系统提示、历史、约束和实际模型字段保留在准备后的请求中。最多一次整理和两次计数。一次性许可绑定 Adapter、对象、正文及 SHA-256；传输必须消费许可并直接使用返回的 bytes。当前经过验证的适配器不自动重试。诊断为内容安全的计数字段、原因、节点名称和模型名称。CityU 本地估算按完整冻结 JSON 的 UTF-8 字节数计算，每字节计一个本地估算单位，覆盖历史、协议 framing 与工具 schema。现有环境里的 tiktoken 没有经确认适用于 CityU 模型的编码。本策略确定、可重放，不要求额外依赖，且不保证包住服务端 tokenizer 或网关追加内容。诊断字段为 count_unit=local_token_estimate、counter_exact=false，供应商响应的 usage.prompt_tokens 仍用于事后对照。
 
 ## 压缩与保真边界
 
@@ -28,14 +28,14 @@
 | 压缩前／后 Mock 计数 | 17155 / 10266 |
 | Mock 请求规模减少率 | 40.16% |
 
-Mock 计数使用完整 JSON 的 UTF-8 字节数。这是相同请求体的离线比对指标。真实 Token 压缩率、质量阈值和更大语料的外推仍待团队审批与验证。未来泄漏防线另外通过显式未来证据与 UTC 时分秒测试验证。
+Mock 计数使用完整 JSON 的 UTF-8 字节数。这是相同请求体的离线比对指标。本样本的事实保真下降为 0，低于团队需求草案的 0.1 容忍值。真实 Token 压缩率与模型输出质量无法从这一合成输入样本外推。未来泄漏防线另外通过显式未来证据与 UTC 时分秒测试验证。
 
 ## Provider 状态
 
 | Provider | 当前状态 |
 |---|---|
 | DeepSeek 官方 Chat Completions | 提供同一 SDK 传输适配器，需注入经过独立验证的计数器；官方真实端点与 Token 均未验收 |
-| CityU DeepSeek | SDK Mock HTTP 已验证 model/base URL、到达 SDK 的完整 JSON、工具 schema、reasoning_content、结构化输出、计数前置与零发送、SDK 禁止重试；供应商真实 Token 未验收 |
+| CityU DeepSeek | 已接入本地估算。SDK Mock HTTP 验证 model/base URL、最终 JSON、工具 schema、reasoning_content、结构化输出、压缩后本地上限与超限零发送、SDK 禁止重试。供应商实际 Token 数与本地估算分别报告 |
 | OpenAI／ChatGPT／Azure | 没有已验证的发送前计数与传输适配，预算开启时不放行；OpenAI 默认关闭行为保留 |
 | Anthropic／Google／Bedrock | 同上 |
 | xAI、Qwen、GLM、MiniMax、OpenRouter、Mistral、Kimi、Groq、NVIDIA、Ollama、openai_compatible | 同上，兼容 Chat Completions 本身不能证明计数一致 |
@@ -44,10 +44,10 @@ Mock 计数使用完整 JSON 的 UTF-8 字节数。这是相同请求体的离�
 ## 实测与剩余验收
 
 - python -m pytest tests/test_context_budget_core.py -q，73 通过。
-- python -m pytest tests/test_budget_agent_integration.py -q，13 通过。
-- python -m pytest -q，1498 通过、0 失败、1 跳过、1 未选中；100 个子测试通过。Phase 1 为 1412 通过，Phase 2 为 1485。跳过为可选 Bedrock 依赖，未选中为真实 DeepSeek 集成测试。
+- python -m pytest tests/test_budget_agent_integration.py -q，18 通过。
+- python -m pytest -q，1503 通过、0 失败、1 跳过、1 未选中；100 个子测试通过。Phase 1 为 1412 通过，Phase 2 为 1485。跳过为可选 Bedrock 依赖，未选中为真实 DeepSeek 集成测试。
 - ruff check .、python -m compileall -q tradingagents cli tests、git diff --check 通过。依赖版本与 Phase 1 相同。测试只使用无外网隔离网络及合成数据。
 - 中间运行发现 7 项检查点回归，原因是签名读取了旧的最小实例未初始化的属性。签名改为从配置判定预算状态后全量重跑通过。原有测试和断言均未调整。
-- 待验收包括真实 CityU 或官方 DeepSeek 的发送前 Token 计数、真实端点协议和拒绝行为、逐条供应商 provenance 与获批的保真阈值。自由文本聚合提示会保守整体保留，超限时阻断。该范围不对真实端点启用硬预算。
+- 本地预算、约束保留和合成样本保真通过离线验收。真实 CityU 冒烟、供应商实际 Token 差异和更大语料上的模型输出质量不在本轮离线结论内。逐条供应商 provenance 仍取决于数据源，自由文本聚合提示保守整体保留，超出本地上限时阻断。
 
 [新闻接入](stage-5.2-phase-3-news-integration.md) · [Agent 调用清单](stage-5.2-phase-4-all-agents.md)

@@ -80,7 +80,7 @@ class BudgetedModel(Runnable):
             True, "unsupported_structured_request", cap, threshold,
             None, None, 0, 0, 0, False, False,
         )
-        self._log(diagnostic, provider_supported=False, counter_exact=False)
+        self._log(diagnostic, provider_supported=False, counter_exact=None)
         raise ContextBudgetBlocked(diagnostic)
 
     def invoke(self, input, config=None, **kwargs):
@@ -96,6 +96,7 @@ class BudgetedModel(Runnable):
         else:
             messages = convert_to_messages(input)
 
+        counter_exact = getattr(self.adapter, "counter_exact", True)
         try:
             reply, diagnostic = budget_and_send(
                 formatted_messages=messages,
@@ -112,10 +113,10 @@ class BudgetedModel(Runnable):
             self._log(
                 diagnostic,
                 provider_supported=supported if self.adapter is not None else False,
-                counter_exact=True if diagnostic.count_after is not None else None,
+                counter_exact=counter_exact if diagnostic.count_before is not None else None,
             )
             raise
-        self._log(diagnostic, provider_supported=True, counter_exact=True)
+        self._log(diagnostic, provider_supported=True, counter_exact=counter_exact)
         return reply
 
     def _log(self, diagnostic, *, provider_supported, counter_exact):
@@ -127,6 +128,11 @@ class BudgetedModel(Runnable):
                 **diagnostic.as_dict(),
                 "provider_supported": provider_supported,
                 "counter_exact": counter_exact,
+                "counter_revision": getattr(self.adapter, "counter_revision", None),
+                "count_unit": (
+                    "local_token_estimate" if counter_exact is False
+                    else "tokens" if counter_exact is True else None
+                ),
             },
         )
 
