@@ -73,8 +73,10 @@ team pass.
 
 Other members should add one row each to the table and, where relevant, the
 requirement ownership they held. No names or effort numbers are inferred here.
-The dev branch shows two module-ownership clusters that should be confirmed by
-their owners:
+The feature-z owner's draft contribution/reflection is at
+`docs/context-budget-reflection.md`; it is not inserted until the name and
+student ID are confirmed. The dev branch shows two module-ownership clusters
+that should be confirmed by their owners:
 
 | Area | Evidence in the dev tree | Owner |
 |---|---|---|
@@ -480,6 +482,12 @@ and a last-minute clarification should not be necessary.
 
 > Each other member should add a 300–500-word reflection here with their name
 > and student ID. Do not infer or write another member's reflection.
+>
+> The feature-z owner has provided a draft at
+> `docs/context-budget-reflection.md` and a supervision summary at
+> `transcripts/REQ-CONTEXT-BUDGET-zxsgdmn-supervision-summary.md`; the name and
+> student ID are still marked “to be confirmed”, so the draft is not inserted
+> here. No feature-f reflection has been provided.
 
 #### (Team member 2 — name and student ID)
 
