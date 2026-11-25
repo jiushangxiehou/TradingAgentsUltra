@@ -60,4 +60,9 @@ class Reflector:
                 ),
             ),
         ]
+        from tradingagents.dataflows.date_window import get_current_date
+        from tradingagents.graph.budgeted_model import BudgetedModel
+
+        if isinstance(self.quick_thinking_llm, BudgetedModel):
+            return self.quick_thinking_llm.invoke_budget(messages, cutoff=get_current_date()).content
         return self.quick_thinking_llm.invoke(messages).content

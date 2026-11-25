@@ -74,6 +74,10 @@ def invoke_structured(structured_llm: Any | None, prompt: Any, agent_name: str) 
             raise ValueError("structured output returned no parsed result")
         return result
     except Exception as exc:
+        from tradingagents.graph.context_budget import ContextBudgetBlocked, UnverifiableCountError
+
+        if isinstance(exc, (ContextBudgetBlocked, UnverifiableCountError)):
+            raise
         logger.warning(
             "%s: structured-output invocation failed (%s); retrying once as free text",
             agent_name, exc,

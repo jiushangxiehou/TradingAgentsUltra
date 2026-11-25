@@ -130,12 +130,29 @@ def _url() -> str:
     return base.rstrip("/") + "/v1/systemone"
 
 
-def jev_screen(ticker: str):
+def jev_screen(ticker: str, *, budget_config=None):
     """A post screen for the social fetchers, or None without a TypeSafe key.
 
     The screen takes the post texts and returns one keep flag per post and a
     note line for the top of the source's block.
     """
+    if budget_config is not None:
+        from tradingagents.graph.context_budget import resolve_budget
+
+        cap, threshold = resolve_budget(budget_config)
+        logger.info(
+            "agent_input_budget %s",
+            {
+                "agent_name": "Sentiment Analyst / Jev", "model_name": None,
+                "enabled": True, "reason": "provider_unsupported",
+                "budget_tokens": cap, "threshold_tokens": threshold,
+                "count_before": None, "count_after": None,
+                "deduped_blocks": 0, "summarized_blocks": 0, "dropped_blocks": 0,
+                "compaction_passes": 0, "allowed_send": False, "overflow": False,
+                "counter_exact": None, "provider_supported": False,
+            },
+        )
+        return None
     if not os.environ.get("TYPESAFE_API_KEY"):
         return None
     name = resolve_instrument_identity(ticker).get("company_name")

@@ -25,6 +25,8 @@ _ENV_OVERRIDES = {
     "TRADINGAGENTS_TEMPERATURE":          "temperature",
     "TRADINGAGENTS_LLM_MAX_RETRIES":      "llm_max_retries",
     "TRADINGAGENTS_MAX_TOKENS":           "max_tokens",
+    "TRADINGAGENTS_CONTEXT_INPUT_HARD_CAP_TOKENS": "context_input_hard_cap_tokens",
+    "TRADINGAGENTS_CONTEXT_INPUT_COMPACTION_THRESHOLD_TOKENS": "context_input_compaction_threshold_tokens",
     # Provider-specific reasoning/thinking knobs (None = each provider's own
     # default). Settable here for non-interactive runs; the CLI also offers an
     # interactive choice, which is skipped when the matching var is set.
@@ -95,6 +97,8 @@ def build_default_config() -> dict:
         "memory_log_max_entries": None,
         # LLM settings
         "llm_provider": "openai",
+        "context_input_hard_cap_tokens": None,
+        "context_input_compaction_threshold_tokens": None,
         "deep_think_llm": "gpt-6-sol",
         "quick_think_llm": "gpt-6-luna",
         # When None, each provider's client falls back to its own default endpoint
