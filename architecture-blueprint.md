@@ -11,6 +11,9 @@
 
 - **System:** TradingAgents, a LangGraph multi-agent LLM financial trading
   framework, enhanced per the five requirements in `docs/req/requirements.yaml`.
+- **Submission tree:** `dev` (ADR-007) — the pinned 0.7.1 baseline at the
+  repository root plus the project's additions; the declared baseline
+  differences are in `docs/architecture/baseline-overrides.md` (ADR-008).
 - **In-scope:** the agent pipeline (analysts → researchers → trader → risk
   debators → portfolio manager), the context assembly, the decision guardrail,
   trace recording, and termination discipline.
@@ -40,13 +43,17 @@
 
 ## 4. Components
 
-| Component | Responsibility | Satisfies |
-|-----------|----------------|-----------|
-| `ContextAssembler` | budget + compact context per agent call | REQ-CONTEXT-BUDGET |
-| `StructuredDebater` | schema-validated, convergible bull/bear turns | REQ-STRUCTURED-DEBATE |
-| `TraceRecorder` | assertion → evidence snapshot links | REQ-TRACEABILITY |
-| `Guardrail` | deterministic decision hard-check | REQ-HARD-GUARDRAIL |
-| `TerminationController` | self-stop on stall/repeat/budget | REQ-TERMINATION-DISCIPLINE |
+| Component | Owning module (dev) | Responsibility | Satisfies | Owner |
+|-----------|---------------------|----------------|-----------|-------|
+| Context assembler | `tradingagents/graph/context_budget.py` + `budgeted_model.py` + `llm_clients/deepseek_context_adapter.py` (facade `src/context_assembler.py`) | budget + compact context per agent call | REQ-CONTEXT-BUDGET | ZhuXuan (60377218) |
+| Structured debater | `tradingagents/debate/engine.py` + `schemas.py` + `evidence.py` (facade `src/structured_debater.py`) | schema-validated, convergible turns | REQ-STRUCTURED-DEBATE | Fan Hao (60835652) |
+| Trace recorder | `src/trace_recorder.py` + `src/integration/trace_adapter.py` | assertion → evidence snapshot links | REQ-TRACEABILITY | CUI Haoyu (60760270) |
+| Guardrail | `src/guardrail.py` + `src/integration/**` | deterministic decision hard-check | REQ-HARD-GUARDRAIL | CUI Haoyu (60760270) |
+| Termination controller | `tradingagents/graph/termination.py` (facade `src/termination_controller.py`) | self-stop on stall/repeat/budget | REQ-TERMINATION-DISCIPLINE | CUI Haoyu (60760270) |
+
+The module map is enforced by `test/offline/test_structural_fitness.py`; the
+`feature-c` design names (`ContextAssembler`, `StructuredDebater`) survive only
+as the `src/` facades (ADR-007).
 
 See `docs/architecture/trace-matrix.md` for the requirement → component mapping
 and `docs/code-governance/structural-constraints.md` for module rules.

@@ -1,7 +1,10 @@
 # ADR-005: Self-Termination Discipline
 
 - **Status:** Accepted
-- **Decision owner:** CUI Haoyu (60760270), integration implementation
+- **Requirement owner:** Fan Hao (60835652) — REQ-TERMINATION-DISCIPLINE and its
+  story points (repeat threshold, budget/stall signals, max-round cap).
+- **Decision owner / integration:** CUI Haoyu (60760270) — the analyst-loop
+  wiring, the controller and its tests.
 - **Date:** 2026-11-25
 
 ## Context

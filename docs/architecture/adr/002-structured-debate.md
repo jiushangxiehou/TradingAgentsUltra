@@ -1,8 +1,11 @@
 # ADR-002: Structured Eliminative Debate
 
 - **Status:** Accepted
-- **Decision owner:** feature-f owner (to confirm)
+- **Decision owner:** Fan Hao (60835652)
 - **Date:** 2026-11-25
+- **Module placement:** `tradingagents/debate/engine.py`, `schemas.py`,
+  `evidence.py` plus the five debate nodes and the router; the project-owned
+  entry point is the `src/structured_debater.py` facade (ADR-007).
 
 ## Context
 The baseline bull/bear debate is free-form prose bounded only by round count; it
@@ -23,9 +26,26 @@ configurable bound; minimum-rounds guard default 1).
 - Supports REQ-STRUCTURED-DEBATE; debate is auditable and cheaper.
 - Template constrains fluency; mitigated by the evidence_reference field.
 
+### Field mapping as implemented
+
+The requirement names four fields; the typed schema is the implemented shape
+(ADR-007). The mapping is part of this decision, not a silent substitution:
+
+| Requirement field | Implemented field |
+|---|---|
+| claim | `DebateClaim.statement` |
+| evidence_reference | `DebateClaim.evidence_refs` (ids from the evidence catalog) |
+| counter_argument | `DebateRebuttal.target_claim_id` + `argument` |
+| round_conclusion | `DebateTurn.thesis` + `round` + `changed_position` |
+
+The typed turn also carries concessions, open questions, stance, confidence and
+a novelty audit, which the four flat fields could not express.
+
 ## Reopen conditions
 A debate that frequently stops before a meaningful exchange → raise the
-divergence threshold or minimum rounds.
+divergence threshold or minimum rounds. If the four flat requirement fields must
+be emitted literally (for example for an external consumer), add them as a
+projection of the typed turn rather than replacing the schema.
 
 ## Architectural design process
 

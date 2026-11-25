@@ -119,5 +119,69 @@
 - **Note:** Fixed by CUI Haoyu; this is evidence that the gate is not merely
   decorative.
 
+## Bug-009: The strict baseline verifier could not express a declared difference
+
+- **Class:** process / baseline integrity
+- **Symptom:** `scripts/verify_baseline.py --strict` failed on `dev` with 19
+  altered pinned files, and the only way to make it pass was to stop checking
+  them.
+- **Reproduction:** run `--strict` on the dev tree.
+- **Root cause:** the verifier had two states — pinned or unexpected — and no way
+  to say "this difference was reviewed and owned".
+- **Fix:** `scripts/baseline-overrides.json` declares the 19 dev overrides and
+  the 5 project-owned files with owner, requirement, commit, reason and ADR; the
+  verifier reports declared differences, fails undeclared ones, and fails a
+  stale declaration under `--strict` (ADR-008).
+- **Invariant gap exposed:** "extend, never replace" needs a way to record an
+  approved extension; otherwise the rule is enforced only by refusing to work.
+- **Note:** the relaxation is a declaration, not a disabled check: an altered
+  file that nobody declared still fails.
+
+## Bug-010: `.env.example` omitted the configuration keys it was said to document
+
+- **Class:** documentation
+- **Symptom:** the feature-f contribution report said the `debate_*` variables
+  were documented in `.env.example`; the file listed none of them (and none of
+  the `context_input_*` keys either).
+- **Reproduction:** grep `.env.example` for `debate_` and `context_input_`.
+- **Root cause:** `default_config.py` gained the environment-variable map, but
+  the example file was never updated in the same change.
+- **Fix:** the CS5351 block in `.env.example` now documents both key sets, their
+  defaults and the local-estimate caveat.
+- **Invariant gap exposed:** a configuration key that exists only in code is
+  invisible to the operator; the example file is part of the contract.
+- **Note:** found by CUI Haoyu while consolidating the member contributions.
+
+## Bug-011: The AI-use-log gate compared only the last two commits
+
+- **Class:** CI / process
+- **Symptom:** a multi-commit push could change code in an earlier commit and
+  update the log in a later one — or not at all — and still pass.
+- **Reproduction:** a two-commit range where only the second touches
+  `docs/ai-use-log.yaml`; `git diff HEAD^..HEAD` sees just the second.
+- **Root cause:** the gate used `HEAD^..HEAD` instead of the change set.
+- **Fix:** `scripts/gate_ai_use_log.py` compares `base..head` and resolves the
+  base from the CI event (push `before`, PR base ref), with `HEAD~1` only as a
+  local fallback.
+- **Invariant gap exposed:** a gate whose scope is one commit is not a change-set
+  gate; the debt register had recorded it, and this closes it.
+
+## Bug-012: The element map named two stubs as the owning modules
+
+- **Class:** architecture / governance
+- **Symptom:** `structural-constraints.md`, `trace-matrix.md` and `AGENTS.md`
+  mapped the context assembler to `src/context_assembler.py` and the structured
+  debater to `src/structured_debater.py`; both files raised
+  `NotImplementedError` or declared a field-name list, while the runtime used
+  `tradingagents/graph/context_budget.py` and `tradingagents/debate/**`.
+- **Reproduction:** import the two mapped modules and call their entry points.
+- **Root cause:** the map was written for the `feature-c` overlay and never
+  reconciled when `dev` became the runtime.
+- **Fix:** the map now names the runtime modules, the two stubs are facades that
+  re-export them (ADR-007), and `test/offline/test_structural_fitness.py`
+  enforces the map.
+- **Invariant gap exposed:** an architecture document that points at dead code
+  makes every "one element, one module" claim unverifiable.
+
 <!-- Append new bugs below. Every bug that weakens an invariant must update
 docs/architecture/invariants.md and add a regression test. -->

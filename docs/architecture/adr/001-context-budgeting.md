@@ -1,9 +1,14 @@
 # ADR-001: Context Budgeting and Compaction
 
-- **Status:** Proposed
-- **Decision owner:** (fill in)
-- **Date:** (fill in)
-- **Review:** implementation documented below; decision owner, approval and date await human confirmation.
+- **Status:** Accepted
+- **Decision owner:** ZhuXuan (60377218)
+- **Date:** 2026-11-25
+- **Module placement:** `tradingagents/graph/context_budget.py`,
+  `tradingagents/graph/budgeted_model.py`,
+  `tradingagents/llm_clients/deepseek_context_adapter.py`; the project-owned
+  entry point is the `src/context_assembler.py` facade (ADR-007).
+- **Review:** implementation and acceptance are recorded below; the module
+  placement was reconciled by ADR-007 when `dev` became the submission tree.
 
 ## Context
 The baseline TradingAgents agents re-send full research reports and the entire
@@ -15,8 +20,10 @@ Install the opt-in model boundary at [Graph construction](../../../tradingagents
 and [agent setup](../../../tradingagents/graph/setup.py). The implementation is
 [BudgetedModel](../../../tradingagents/graph/budgeted_model.py) and
 [budget_and_send](../../../tradingagents/graph/context_budget.py).
-`ContextAssembler` was a design name; `src/context_assembler.py` remains a
-placeholder on merged dev and is outside this runtime path.
+`ContextAssembler` was a design name. The runtime path is
+`tradingagents/graph/context_budget.py` + `budgeted_model.py`;
+`src/context_assembler.py` is the project-owned facade that re-exports it
+(ADR-007). It is no longer a placeholder.
 
 ### Context layers
 

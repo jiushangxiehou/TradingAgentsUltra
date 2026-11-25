@@ -39,6 +39,12 @@ Read in this order before writing code:
 - **Frozen:** the test harness semantics, the data-access contract, and any
   module that an ADR marks as frozen. Changing these requires an architecture
   decision and human approval.
+- **Submission tree:** `dev` (ADR-007). The pinned baseline is the repository
+  root; the twenty-four declared differences are listed in
+  `docs/architecture/baseline-overrides.md` and enforced by
+  `scripts/verify_baseline.py` (ADR-008). A pinned file may differ only when it
+  is declared there; add a declaration to change one, never an exception in the
+  verifier.
 
 ## 4. What is readable / modifiable / frozen
 
@@ -69,16 +75,20 @@ state.
 
 | Element | Owning module / interface | Contract | Invariant / status |
 |---|---|---|---|
-| Context assembler | dev `tradingagents/graph/context_budget.py`: `budget_and_send(adapter, request)`; `BudgetedModel` wraps the model | Returns an authorized request or raises `ContextBudgetBlocked` / `UnverifiableCountError`; it must not send an over-budget request | INV-CONTEXT-BUDGET; dev-only |
-| Structured debater | dev `tradingagents/debate/engine.py`: `bind_debate_turn`, `run_debate_turn`; schemas `DebateTurn`, `TurnAudit`, `TerminationDecision` | Emits schema-validated turns and an audit/metrics record; a failed schema turn is recorded, not silently discarded | REQ-STRUCTURED-DEBATE; dev-only |
+| Context assembler | `tradingagents/graph/context_budget.py`: `budget_and_send(adapter, request)`; `tradingagents/graph/budgeted_model.py`: `BudgetedModel`; `tradingagents/llm_clients/deepseek_context_adapter.py`: CityU transport; facade `src/context_assembler.py` | Returns an authorized request or raises `ContextBudgetBlocked` / `UnverifiableCountError`; it must not send an over-budget request | INV-CONTEXT-BUDGET; complete on dev (ZhuXuan 60377218) |
+| Structured debater | `tradingagents/debate/engine.py`: `bind_debate_turn`, `run_debate_turn`, `evaluate_termination`; schemas `DebateTurn`, `TurnAudit`, `TerminationDecision`; facade `src/structured_debater.py` | Emits schema-validated turns and an audit/metrics record; a failed schema turn is recorded, not silently discarded | REQ-STRUCTURED-DEBATE; complete on dev (Fan Hao 60835652) |
 | Trace recorder | `src/trace_recorder.py`: `TraceRecorder.record_snapshot`, `record_assertion`, `record_final_decision`, `audit`; `src/integration/trace_adapter.py` | Every critical assertion links to a snapshot; a trace failure produces `traceable=false`/`trace_error`, never changes the rating | INV-TRACE-COMPLETENESS; complete |
 | Guardrail | `src/guardrail.py`: `Decision`, `GuardrailLimits`, `evaluate_decision` → `GuardrailResult` | Deterministic check of rating, declared size, short and cash; missing/malformed input fails closed to `Hold` | INV-GUARDRAIL-ZERO-ESCAPE; complete |
-| Termination controller | `tradingagents/graph/termination.py`: `should_terminate`, `TerminationController`; `src/termination_controller.py` facade | Stops on max tool rounds or a repeated tool-call round; the stateful controller accepts stall/budget observations; the analyst loop wires repeat + max | REQ-TERMINATION-DISCIPLINE; implemented (stall/budget per-loop wiring follow-up) |
+| Termination controller | `tradingagents/graph/termination.py`: `should_terminate`, `TerminationController`; `src/termination_controller.py` facade | Stops on max tool rounds or a repeated tool-call round; the stateful controller accepts stall/budget observations; the analyst loop wires repeat + max | REQ-TERMINATION-DISCIPLINE; Fan Hao (60835652) — requirement, CUI Haoyu (60760270) — integration; stall/budget per-loop wiring follow-up |
 | Integration composition | `src/integration/governed_graph.py`: `GuardedTradingAgentsGraph.record_decision`; `src/integration/entry.py`: `run_guarded_cli` | The gate runs after the graph finishes and before the memory log; the CLI keeps the upstream prompts and report flow | ADR-006; complete (CUI Haoyu) |
 
-> **CUI Haoyu note:** the trace, guardrail, integration and termination
-> controller integration are mine. The context/debate contracts are the dev
-> implementations; their owners should confirm the final module placement.
+> **Ownership note (2026-11-25):** the trace, guardrail and integration work is
+> CUI Haoyu (60760270), who also implemented the termination-controller
+> integration. The context-budget element is ZhuXuan (60377218); the
+> structured-debate element and the termination requirement are Fan Hao
+> (60835652). ADR-007 fixes the module placement these contracts refer to, so
+> the "dev-only" caveat is retired: `dev` is the submission tree and the
+> runtime modules are the owning modules (the `src/` facades expose them).
 
 ## 7. Verification requirements the generated code must satisfy
 

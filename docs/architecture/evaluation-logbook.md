@@ -15,6 +15,9 @@
 | 2026-11-25 | Report formatting clarification | “Point 12” confirmed as 12-point font, not a section | D6 placeholder removed; formatting/page requirement recorded |
 
 | 2026-11-25 | Termination controller | 7 offline cases: repeat, distinct, cap, budget, stall, reset, invalid threshold; analyst loop wires repeat+max | D8 termination gap reduced; full per-loop stall/budget wiring remains a follow-up |
+| 2026-11-25 | Submission-tree reconciliation | ADR-007 named the runtime modules for all five elements; the two stubs became facades; the structural fitness test (14 cases) passes | Element-map debt closed; D8 is the dev tree |
+| 2026-11-25 | Baseline declaration | 19 dev overrides declared with owner/requirement/commit/ADR; `--strict` PASS, 0 undeclared, 0 stale | Baseline drift is a recorded decision, not a failing gate (ADR-008) |
+| 2026-11-25 | Gate implementation | Gate tests 20/20; safety checks 21/21; mypy clean on 12 files; semantic replay 9/9 decisions, 0 escapes | D7 gates 1/2/4/6 and baseline integrity are enforced in CI |
 
 ## What this log does not claim
 

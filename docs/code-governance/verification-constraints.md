@@ -1,101 +1,106 @@
 # Verification Constraints (D4)
 
-> The verification rules the verification agent applies, and the QA records the
-> team maintains.
+> The verification rules the verification agent applies, the QA records the team
+> maintains, and the evidence for each requirement.
+> **Submission tree: `dev` (ADR-007).** Reviewed 2026-11-25.
 
 ## Rules
+
 1. Every fit criterion in `docs/req/requirements.yaml` has at least one test.
 2. Every invariant has at least one test that **fails** when the invariant is
    violated.
 3. Every test references the requirement or invariant it verifies.
 4. Every new round of work runs all previous rounds' test suites with **zero
    regressions**.
+5. A test under `test/` or `tests/` must be approved before the implementation it
+   guards is merged (`docs/test-approval.yaml`, D7 gate 1).
+6. Every claim in a report quotes the command and its output
+   (`.agent/rules.md` covenant 7).
 
 ## Three-tier verification
-- **Structural:** imports, module boundaries, permissions, architectural fitness
-  functions (e.g. module ↔ architectural element map).
-- **Regression:** all prior suites pass (zero regressions).
-- **Behavioral:** quality thresholds — faithfulness / relevancy ≥ 0.6 for the
-  AI-generated explanation layer; zero safety escapes past the guardrail.
+
+| Tier | Checks | Where |
+|---|---|---|
+| **Structural** | imports, module boundaries, permissions, element-map fitness, API surface, baseline declaration | `test/offline/test_structural_fitness.py`, `scripts/check_safety_paths.py`, `scripts/verify_baseline.py` |
+| **Regression** | offline deterministic suite, 9 full-graph E2E, upstream suite | `pytest test/offline -m offline`, `pytest test/offline/test_integration_end_to_end.py`, `pytest tests -m "not integration"` |
+| **Behavioural** | guardrail zero-escape replay, prompt-constraint retention, live faithfulness/relevancy >= 0.6 | `scripts/gate_semantic_eval.py`, `test/live/test_live_prose.py` |
 
 ## Test layout
+
 - `test/offline/` — deterministic tests, no API key, must pass in CI.
-- `test/live/` — API-dependent tests (LLM + data vendors), require keys.
+- `test/live/` — API-dependent tests (LLM + data vendors), require keys; the
+  live prose test skips, rather than fails, without a key.
+- `tests/` — the pinned baseline's own suite plus the two feature owners' tests
+  (`test_context_budget_core.py`, `test_budget_agent_integration.py`,
+  `test_debate_opening.py`, `test_structured_agents.py`).
 
 ## QA records (D4)
-- `docs/review-memo.md` — one per PR (spec/architecture alignment, code & test
-  quality, operational metadata, security & efficiency, verdict).
-- `docs/debt-register.md` — AI-era technical debt categories.
-- `docs/bug-diary.md` — one entry per significant bug.
 
-## Concrete test-to-requirement mapping (reviewed 2026-11-25)
+- `docs/review-memo.md` — one memo per review unit; PR-001…PR-009.
+- `docs/debt-register.md` — AI-era debt with owner and status.
+- `docs/bug-diary.md` — one entry per significant bug; Bug-001…Bug-012.
+- `docs/d4-verification-plan.md` — this round's plan and execution record.
 
-The dev branch contains the complete implementations for context budgeting and
-structured debate; the feature-c/team-app tree still carries the original `src/`
-stubs for those elements. The mapping below records both facts rather than
-pretending the trees are identical.
+## Test-to-requirement mapping (submission tree)
 
-| Requirement | Implementation | Primary tests | Status |
+| Requirement | Implementation | Primary tests | Owner / status |
 |---|---|---|---|
-| REQ-CONTEXT-BUDGET | dev: `tradingagents/graph/context_budget.py`, `budgeted_model.py`, `llm_clients/deepseek_context_adapter.py`; team-app: `src/context_assembler.py` stub | `tests/test_context_budget_core.py`, `tests/test_budget_agent_integration.py`, `tests/news_context_budget_fixtures.py`; `test/offline/test_context_budget.py` now covers the strict config contract (5 cases) | **Implemented/tested on dev; feature-c stub** |
-| REQ-STRUCTURED-DEBATE | dev: `tradingagents/debate/**`, conditional logic, researcher/risk wiring; team-app: `src/structured_debater.py` stub | `tests/test_debate_opening.py`, `tests/test_structured_agents.py`, graph E2E (dev); no dedicated team-app test | **Implemented/tested on dev; feature-c stub** |
-| REQ-TRACEABILITY | `src/trace_recorder.py`, `src/integration/trace_adapter.py` | `test/offline/test_traceability.py`, `test/offline/test_integration_trace.py`, `test/offline/test_integration_end_to_end.py` | **Complete (CUI Haoyu)** |
-| REQ-HARD-GUARDRAIL | `src/guardrail.py`, `src/integration/decision_adapter.py`, `gate_support.py`, `governed_graph.py` | `test/offline/test_guardrail.py`, `test_integration_decision.py`, `test_integration_gate.py`, `test_integration_end_to_end.py` | **Complete (CUI Haoyu)** |
-| REQ-TERMINATION-DISCIPLINE | `tradingagents/graph/termination.py` (`should_terminate`, `TerminationController`) + `src/termination_controller.py` facade; analyst loop wired in `setup.py` | `test/offline/test_termination.py` (7 cases: repeat, distinct, cap, budget, stall, reset, invalid threshold); debate tests | **Complete for repeat/max + controller; stall/budget API tested, full per-loop wiring follow-up** |
+| REQ-CONTEXT-BUDGET | `tradingagents/graph/context_budget.py`, `budgeted_model.py`, `llm_clients/deepseek_context_adapter.py`; facade `src/context_assembler.py` | `tests/test_context_budget_core.py` (40), `tests/test_budget_agent_integration.py` (13), `test/offline/test_context_budget.py` (5) | ZhuXuan (60377218) — complete |
+| REQ-STRUCTURED-DEBATE | `tradingagents/debate/engine.py`, `schemas.py`, `evidence.py`; facade `src/structured_debater.py` | `tests/test_debate_opening.py` (5), `tests/test_structured_agents.py` (35) | Fan Hao (60835652) — complete |
+| REQ-TRACEABILITY | `src/trace_recorder.py`, `src/integration/trace_adapter.py` | `test/offline/test_traceability.py` (40), `test_integration_trace.py` (51), E2E (9) | CUI Haoyu (60760270) — complete |
+| REQ-HARD-GUARDRAIL | `src/guardrail.py`, `src/integration/decision_adapter.py`, `gate_support.py`, `governed_graph.py` | `test/offline/test_guardrail.py` (39), `test_integration_decision.py` (32), `test_integration_gate.py` (27), E2E | CUI Haoyu — complete |
+| REQ-TERMINATION-DISCIPLINE | `tradingagents/graph/termination.py`; facade `src/termination_controller.py`; analyst loop in `setup.py` | `test/offline/test_termination.py` (7); debate termination tests | Fan Hao (60835652) — requirement; CUI Haoyu (60760270) — integration. Repeat/max wired; stall/budget API tested |
 
 ### Invariant evidence
 
 | Invariant | Negative test / evidence | Status |
 |---|---|---|
-| `INV-GUARDRAIL-ZERO-ESCAPE` | each trigger has a rejection test; malformed/config-error tests; full-graph E2E | Complete |
-| `INV-RATING-VALIDITY` | legal-rating test and `REVIEW`-never-a-rating test | Complete |
-| `INV-TRACE-COMPLETENESS` | every report must be backed by evidence; no-data placeholders; trace-failure sidecar test | Complete |
+| `INV-GUARDRAIL-ZERO-ESCAPE` | each trigger rejects; malformed/config-error cases; a guardrail patched to always pass fails the zero-escape test; full-graph E2E | Complete |
+| `INV-RATING-VALIDITY` | legal-rating test and the `REVIEW`-is-never-a-rating test | Complete |
+| `INV-TRACE-COMPLETENESS` | every critical link must resolve; no-data placeholders; trace-failure sidecar test | Complete |
+| `INV-CONTEXT-BUDGET` | over-cap and unverifiable-count calls block before HTTP; the config contract fails closed | Complete on dev |
 
-### Three-tier status
+## Blocking-gate mapping (D7)
 
-- **Structural:** `scripts/verify_baseline.py --strict` passes in root layout
-  (208 pinned + 5 overrides); `ruff check src test` passes for the project code.
-  A module-to-element fitness check is still a TODO; the dev/team-app module
-  mapping drift is recorded in the debt register.
-- **Regression:** `test/offline` 441 passed (429 core + 12 termination/budget
-  cases); 9 full-graph E2E passed; the dev upstream suite has 1,498 passing
-  tests with six skips and no persistent failures when run from a
-  project-writable directory.
-- **Behavioral:** the threshold remains faithfulness/relevancy ≥ 0.6, but
-  `test/live/test_live_prose.py` is still a `NotImplementedError` stub and the
-  semantic-evaluation CI gate is absent. This is the main unmet D4/D7 item.
+| Gate | Script / workflow job | Negative test |
+|---|---|---|
+| 1. Test approval | `scripts/gate_test_approval.py` | `test_gates.py::test_unapproved_test_change_fails_the_gate` |
+| 2. Static analysis | `ruff`, `python -m mypy`, `pip check` | mypy failure is the negative signal |
+| 2b. Safety paths | `scripts/check_safety_paths.py` | `test_gates.py::test_pure_module_with_a_forbidden_import_is_reported` |
+| 3. Schema | `scripts/verify_schema.py` | schema violation exits 1 |
+| 4. Semantic evaluation | `scripts/gate_semantic_eval.py` | `test_gates.py::test_wrong_expectation_fails_the_replay` |
+| 5. Regression | offline suite + upstream suite | any failure |
+| 6. AI-use log | `scripts/gate_ai_use_log.py` | `test_gates.py::test_code_change_without_log_fails` |
+| Baseline integrity (ADR-008) | `scripts/verify_baseline.py --strict` | `test_gates.py::test_every_altered_pinned_file_is_declared_and_vice_versa` |
+
+## Three-tier status (2026-11-25)
+
+- **Structural:** element map and facades enforced by
+  `test/offline/test_structural_fitness.py`; `check_safety_paths` 21/21;
+  `verify_baseline.py --strict` PASS on 213 pinned files with 24 declared
+  differences; `mypy` clean on 12 source files.
+- **Regression:** the offline suite (441 before this round + the gate/fitness
+  cases) passes; 9 full-graph E2E pass; the upstream suite is 1,498 passed with
+  6 skips on dev.
+- **Behavioural:** the deterministic replay passes (prompt retention 1.00, 9/9
+  decisions, 0 escapes, model baseline unchanged); the live prose proxy is
+  implemented and skips without a key, so a live result is still owed.
 
 ## REQ-CONTEXT-BUDGET evidence (feature-z acceptance)
 
-- **Structural:** Graph setup installs [BudgetedModel](../../tradingagents/graph/budgeted_model.py)
-  for the existing agent factories. Test coverage includes tool exchanges,
-  structured schemas, Reflection and checkpoint recovery. Case identifiers
-  are linked in the [trace matrix](../architecture/trace-matrix.md#req-context-budget-evidence).
-- **Regression:** Merged dev `a8597af236bbedaa862d7a3a3c1a7d0d2a9984ae` was
-  tested in a network-isolated environment with the following invocations.
+- **Structural:** `Graph` setup installs `BudgetedModel` for the agent
+  factories; the adapter is selected by provider/model. Test coverage includes
+  tool exchanges, structured schemas, Reflection and checkpoint recovery.
+- **Regression:** on merged dev `a8597af` the isolated runs recorded 73 core
+  passes and 18 Agent-integration passes; the combined offline run recorded
+  1,932 passes with two team placeholders failing, which are now implemented.
+- **Behavioural:** SDK Mock HTTP proves final-body identity and zero sends on an
+  over-cap request; the paired fixture preserved 2/2 facts and 5/5 standing
+  constraints. Real CityU token parity and model-output quality are not claimed.
 
-  ```bash
-  python -m pytest -q -p no:cacheprovider -m "not live and not integration" tests/test_context_budget_core.py test/offline/test_context_budget.py
-  python -m pytest -q -p no:cacheprovider -m "not live and not integration" tests/test_budget_agent_integration.py
-  python -m pytest -q -p no:cacheprovider -m "not live and not integration" test/offline tests
-  ```
+## Notes
 
-  The first command recorded 73 core passes and the team's unimplemented
-  `test_context_within_budget` placeholder failed with `NotImplementedError`.
-  The second recorded 18 passes. The third recorded 1932 passes, 2 failures,
-  1 skip, 1 deselection and 100 passing subtests. Its second failure was the
-  team's `test_terminates_on_repeat` placeholder. The existing CI offline
-  marker selection does not cover the budget files in `tests/`; the commands
-  above record direct evidence, without claiming a CI change.
-- **Behavioral:** SDK Mock HTTP proves final-body identity and zero sends on
-  an over-cap request. The paired fixture preserved 2/2 facts and 5/5 standing
-  constraints. This evidence concerns synthetic input faithfulness and local
-  estimates. The model output quality gate and provider token parity were not
-  run in this acceptance.
-
-> **CUI Haoyu note:** the guardrail and traceability rows and their negative
-> tests are mine and were verified locally. The context-budget evidence is the
-> feature-z owner's acceptance run; it is recorded here as team evidence, not
-> as my test result. I added the termination controller/test integration and
-> the offline context-budget config test; the historical feature-z acceptance
-> above predates those two fill-ins.
+- The debug/GUI run artifacts under `artifacts/` are not tests; the live run is
+  evidence in `Report.md` §7.
+- A test that only checks the happy path is not evidence for a safety feature;
+  the fail-closed cases are the ones that matter.

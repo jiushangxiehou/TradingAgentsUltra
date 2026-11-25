@@ -148,5 +148,70 @@
 - **Verdict:** **APPROVE**; full per-loop stall/budget wiring is a follow-up,
   not a claim.
 
+## PR-007: Submission-tree reconciliation (ADR-007)
+
+- **Author:** OpenCode coding agent (supervised by CUI Haoyu)  |  **Reviewer:** CUI Haoyu  |  **Date:** 2026-11-25
+- **Linked requirement(s):** D8, REQ-CONTEXT-BUDGET, REQ-STRUCTURED-DEBATE, REQ-TERMINATION-DISCIPLINE
+- **Review unit:** ADR-007, ADR-008, facades, verifier relaxation, element map.
+- **Spec alignment:** D8 is delivered by `dev`, not by the `feature-c` overlay;
+  the element map now names the modules that execute.
+- **Architecture alignment:** `src/context_assembler.py` and
+  `src/structured_debater.py` re-export the runtime (facade pattern from
+  ADR-005). No second copy of the implementations exists.
+- **Code & test quality:** `test/offline/test_structural_fitness.py` enforces the
+  map, owner student IDs, the pure-module rule and the declared overrides; the
+  offline suite passes unchanged apart from the new tests.
+- **Security & efficiency:** the guardrail and recorder modules are untouched by
+  this unit; the facades add an import path, not a runtime path.
+- **Operational metadata:** ADR-007/008 written; `docs/architecture/baseline-overrides.md`
+  and `scripts/baseline-overrides.json` added; README/AGENTS/blueprint/trace
+  matrix/structural constraints/invariants updated; AI-use log entries 011–012.
+- **Verdict:** **APPROVE** (with the standing note that the 19 pinned overrides
+  remain a declared deviation, not a restoration).
+
+## PR-008: D7 gates, type check and baseline integrity
+
+- **Author:** OpenCode coding agent (supervised by CUI Haoyu)  |  **Reviewer:** CUI Haoyu  |  **Date:** 2026-11-25
+- **Linked requirement(s):** D4, D7 (gates 1, 2, 4, 6 + baseline), ADR-009
+- **Review unit:** `.github/workflows/ci.yml`, `scripts/gate_*.py`,
+  `scripts/check_safety_paths.py`, `scripts/safety_checks.py`, `mypy.ini`,
+  `docs/test-approval.yaml`, `docs/eval/fixed-set.json`, `test/offline/test_gates.py`.
+- **Spec alignment:** six blocking gates plus baseline integrity; the test-approval
+  gate reads the manifest at the base revision; the semantic gate replays a fixed
+  set; the AI-use-log gate compares base..head.
+- **Architecture alignment:** the gates are `scripts/` tooling; they do not add a
+  runtime element. The type check is scoped to the project-owned modules.
+- **Code & test quality:** every gate has negative tests (an unapproved test
+  fails, an undeclared baseline change fails, a wrong eval expectation fails).
+  `python -m mypy` reports no issues in 12 files; `check_safety_paths` is 21/21.
+- **Security & efficiency:** the safety-path checks are the contract/security/
+  API-surface/permission half of gate 2; the typing-only touch to the trace
+  boundary is recorded in ADR-009 and covered by the existing tests.
+- **Operational metadata:** branch-protection policy and CODEOWNERS added; PR
+  template mirrors this memo; README gate table updated; AI-use log entry 011.
+- **Verdict:** **APPROVE**; branch-protection *settings* remain a manual owner
+  step and are recorded as such.
+
+## PR-009: D4 plan, D5 consolidation and D6 integration
+
+- **Author:** OpenCode coding agent (supervised by CUI Haoyu)  |  **Reviewer:** CUI Haoyu  |  **Date:** 2026-11-25
+- **Linked requirement(s):** D4, D5, D6
+- **Review unit:** `docs/d4-verification-plan.md`, `docs/code-governance/verification-constraints.md`,
+  `transcripts/D5-team-session-transcripts.md`, `transcripts/README.md`,
+  `Report.md` §1/§6, `docs/context-budget-reflection.md`,
+  `transcripts/REQ-CONTEXT-BUDGET-zxsgdmn-supervision-summary.md`.
+- **Spec alignment:** D5 is one labelled document with each member's part; D6 is
+  one report with each member's contribution and 300–500-word reflection.
+- **Architecture alignment:** documentation only; no runtime change.
+- **Code & test quality:** `test_structural_fitness` asserts the consolidated D5
+  file exists and labels all three members; the D4 plan is the verification map.
+- **Security & efficiency:** no secrets were introduced; the transcripts remain
+  sanitised.
+- **Operational metadata:** the two members' identities and owned elements are
+  recorded in ADR-001/002, `AGENTS.md`, the report and the D5 document; the
+  numeric contribution weight is the only field left to the team.
+- **Verdict:** **APPROVE** for the consolidation; the two non-raw D5 parts are
+  declared and tracked in the debt register.
+
 <!-- Append new memos below. No GitHub PRs were used; the review unit is the
 feature commit or integration merge. -->
