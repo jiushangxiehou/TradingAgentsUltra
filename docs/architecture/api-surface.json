@@ -1,0 +1,31 @@
+{
+  "$comment": "Pinned public API surface of the frozen modules (D7 gate 2, ADR-009). scripts/check_safety_paths.py compares this list with the module's runtime public names; an added or removed name fails until this file is updated in the same review.",
+  "version": 1,
+  "modules": {
+    "src.guardrail": [
+      "AUDIT_ACTION_REVIEW_HOLD",
+      "AuditLog",
+      "AuditRecord",
+      "Decision",
+      "FALLBACK_RATING",
+      "GUARDRAIL_LIMITS",
+      "GuardrailError",
+      "GuardrailLimits",
+      "GuardrailResult",
+      "TRIGGER_PRECEDENCE",
+      "Trigger",
+      "VALID_RATINGS",
+      "evaluate_decision"
+    ],
+    "src.trace_recorder": [
+      "AuditFinding",
+      "AuditReport",
+      "DataSnapshot",
+      "FINDING_PRECEDENCE",
+      "FindingReason",
+      "TraceError",
+      "TraceLink",
+      "TraceRecorder"
+    ]
+  }
+}

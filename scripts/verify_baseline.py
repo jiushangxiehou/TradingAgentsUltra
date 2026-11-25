@@ -27,24 +27,32 @@ vendor layout (the local working copy):
     ROOT/vendor/tradingagents-0.7.x/
     ROOT/vendor/.baseline/blob-sha-working-tree.txt
 
-root layout (the clean `feature-c` repository):
+root layout (the clean dev submission tree, ADR-007):
     ROOT/  is the 0.7.1 baseline itself (ROOT/tradingagents/, ROOT/cli/, ...)
     ROOT/scripts/baseline/blob-sha-working-tree.txt
 
-The layout is detected; no flag is needed. In root layout, project files are
-expected additions, so `--strict` fails only on a missing or altered pinned
-file. Five pinned files are intentionally project-owned on `feature-c` and are
-declared overrides:
+The layout is detected; no flag is needed.
 
-    README.md, .gitignore, .env.example, requirements.txt,
-    .github/workflows/ci.yml
+Declared differences (ADR-008)
+------------------------------
+A pinned file may differ from upstream only if the difference is DECLARED in
+`scripts/baseline-overrides.json`:
 
-They are reported as `overridden`, not as failures; the other 208 pinned files
-must match. In vendor layout the original strict rule is unchanged: any extra
-file fails.
+    project_owned   the five files the project owns on every layout
+                    (README.md, .gitignore, .env.example, requirements.txt,
+                    .github/workflows/ci.yml). Reported, never a failure.
+    dev_overrides   the files the dev submission tree extends so the runtime
+                    actually calls the five enhancements. Each entry names a
+                    human owner, the requirement, the commit and the ADR.
 
-Fails on: a missing or altered pinned file; in vendor layout, an unexpected
-extra file. In root layout, project additions are allowed.
+The rule is "declare, never silently skip": an altered pinned file that is NOT
+declared is still a failure. A declaration that no longer describes a real
+difference is stale; `--strict` fails on a stale declaration so the manifest
+cannot rot.
+
+Fails on: a missing pinned file; an altered pinned file that is undeclared; in
+vendor layout, an unexpected extra file; with --strict, a stale dev-override
+declaration (root layout only).
 Ignores:  __pycache__, .pytest_cache, tmp*, pytest-of-*, tradingagents-tests-*,
           *.egg-info, and our own BASELINE_MANIFEST.txt / PINNED_COMMIT.txt.
 
@@ -57,6 +65,7 @@ Usage:
 from __future__ import annotations
 
 import hashlib
+import json
 import sys
 from pathlib import Path
 
@@ -64,10 +73,11 @@ ROOT = Path(__file__).resolve().parents[1]
 VENDOR = ROOT / "vendor" / "tradingagents-0.7.x"
 VENDOR_MANIFEST = ROOT / "vendor" / ".baseline" / "blob-sha-working-tree.txt"
 ROOT_MANIFEST = ROOT / "scripts" / "baseline" / "blob-sha-working-tree.txt"
+OVERRIDES_FILE = ROOT / "scripts" / "baseline-overrides.json"
 
-# Pinned files that the project owns on the root-layout feature branch. They are
-# deliberately different from upstream and are declared, never silently skipped.
-PROJECT_OVERRIDES = frozenset(
+# Fallback when the declaration file is missing: the five files the project owns
+# on every layout. Never an implicit permission to drift -- see ADR-008.
+FALLBACK_PROJECT_OWNED = frozenset(
     {
         ".env.example",
         ".gitignore",
@@ -78,6 +88,9 @@ PROJECT_OVERRIDES = frozenset(
 )
 
 IGNORED_DIRS = {"__pycache__", ".pytest_cache"}
+# Never part of the project's file set: the local environment and git's object
+# store would otherwise dominate the "project files" count.
+EXCLUDED_SCAN_DIRS = {".git", ".venv"}
 IGNORED_PREFIXES = ("tmp", "pytest-of-", "tradingagents-tests-")
 IGNORED_NAMES = {"BASELINE_MANIFEST.txt", "PINNED_COMMIT.txt"}
 IGNORED_DIR_SUFFIXES = (".egg-info",)
@@ -111,32 +124,94 @@ def _layout() -> tuple[Path, Path, bool]:
     )
 
 
+def load_overrides() -> tuple[dict[str, dict], dict[str, dict]]:
+    """Load the declared differences, or fail if the declaration is malformed.
+
+    A malformed declaration is a configuration fault, not a pass: verifying a
+    tree against an unreadable permission list would silently accept drift.
+    """
+    if not OVERRIDES_FILE.is_file():
+        project = {p: {"path": p, "reason": "fallback"} for p in FALLBACK_PROJECT_OWNED}
+        return project, {}
+    try:
+        data = json.loads(OVERRIDES_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        raise SystemExit(f"baseline-overrides.json is unreadable: {exc}") from exc
+
+    project_rows = data.get("project_owned", [])
+    dev_rows = data.get("dev_overrides", [])
+    if not isinstance(project_rows, list) or not isinstance(dev_rows, list):
+        raise SystemExit("baseline-overrides.json: project_owned/dev_overrides must be lists")
+
+    project: dict[str, dict] = {}
+    for row in project_rows:
+        if not isinstance(row, dict) or not row.get("path") or not row.get("reason"):
+            raise SystemExit(f"baseline-overrides.json: bad project_owned row: {row!r}")
+        project[row["path"]] = row
+
+    dev: dict[str, dict] = {}
+    for row in dev_rows:
+        missing = [key for key in ("path", "owner", "requirement", "reason", "adr") if not row.get(key)]
+        if missing:
+            raise SystemExit(
+                f"baseline-overrides.json: dev_overrides row {row.get('path')!r} "
+                f"is missing {', '.join(missing)}"
+            )
+        dev[row["path"]] = row
+
+    both = set(project) & set(dev)
+    if both:
+        raise SystemExit(f"baseline-overrides.json: declared twice: {sorted(both)}")
+    return project, dev
+
+
 def main(strict: bool = False) -> int:
     base, manifest, root_layout = _layout()
+    project_owned, dev_declared = load_overrides()
+
     rows = [
         line.split("\t")
         for line in manifest.read_text(encoding="utf-8").splitlines()
         if line
     ]
-    missing: list[str] = []
-    altered: list[str] = []
-    overridden: list[str] = []
+    pinned = {rel: sha for sha, rel in rows}
 
-    for sha, rel in rows:
+    missing: list[str] = []
+    undeclared: list[str] = []
+    declared: list[tuple[str, str]] = []
+    stale: list[str] = []
+    project_owned_seen: list[str] = []
+    dev_seen: list[str] = []
+
+    for rel, sha in pinned.items():
         path = base / rel
-        if root_layout and rel in PROJECT_OVERRIDES:
-            overridden.append(rel)
-            if not path.is_file():
-                missing.append(rel)
-            continue
         if not path.is_file():
             missing.append(rel)
-        elif fingerprint(path.read_bytes()) != sha:
-            altered.append(rel)
+            continue
+        changed = fingerprint(path.read_bytes()) != sha
 
-    tracked = {rel for _, rel in rows}
+        if root_layout and rel in project_owned:
+            project_owned_seen.append(rel)
+            declared.append(("project-owned", rel))
+            continue
+        if rel in dev_declared:
+            if changed:
+                dev_seen.append(rel)
+                declared.append(("dev-override", rel))
+            else:
+                stale.append(rel)
+            continue
+        if changed:
+            undeclared.append(rel)
+
+    # A declaration for a path that is not in the pinned set is a typo, not a grant.
+    unknown = sorted((set(dev_declared) | set(project_owned)) - set(pinned))
+
+    tracked = set(pinned)
     present = {
-        p.relative_to(base).as_posix() for p in base.rglob("*") if p.is_file()
+        p.relative_to(base).as_posix()
+        for p in base.rglob("*")
+        if p.is_file() and not (set(p.relative_to(base).parts) & EXCLUDED_SCAN_DIRS)
     }
     extras = present - tracked - IGNORED_NAMES
     droppings = sorted(p for p in extras if not _is_dropping(p))
@@ -144,9 +219,11 @@ def main(strict: bool = False) -> int:
 
     print(f"layout       : {'root' if root_layout else 'vendor'}")
     print(f"pinned files : {len(tracked)}")
-    print(f"overridden   : {len(overridden)}")
+    print(f"project-owned: {len(project_owned_seen)} declared")
+    print(f"dev overrides: {len(dev_seen)} declared, {len(dev_declared) - len(dev_seen)} unused")
     print(f"missing      : {len(missing)}")
-    print(f"altered      : {len(altered)}")
+    print(f"undeclared   : {len(undeclared)}")
+    print(f"stale        : {len(stale)}")
     if root_layout:
         print(f"project files: {len(droppings)} (allowed additions)")
     else:
@@ -155,18 +232,31 @@ def main(strict: bool = False) -> int:
 
     for label, items in (
         ("MISSING", missing),
-        ("ALTERED", altered),
-        ("OVERRIDDEN", overridden),
+        ("UNDECLARED", undeclared),
+        ("STALE", stale),
+        ("UNKNOWN", unknown),
         ("UNEXPECTED", droppings if not root_layout else []),
     ):
         for item in items[:20]:
             print(f"  {label}: {item}")
 
-    ok = not (missing or altered)
-    if strict and not root_layout and ignored:
+    if dev_seen and strict is False:
+        print("declared dev overrides (owner -> file):")
+        for rel in dev_seen[:24]:
+            row = dev_declared[rel]
+            print(f"  - {row.get('owner')} [{row.get('requirement')}]: {rel}")
+
+    ok = not (missing or undeclared or unknown)
+    if strict and not root_layout and droppings:
         ok = False
         print("--strict: files beyond the pinned set are a failure")
-    print("baseline-verify:", "PASS (pinned baseline matches)" if ok else "FAIL")
+    if strict and stale:
+        ok = False
+        print("--strict: a declared dev override no longer differs from the pinned file")
+    print(
+        "baseline-verify:",
+        "PASS (pinned baseline matches; declared differences only)" if ok else "FAIL",
+    )
     return 0 if ok else 1
 
 

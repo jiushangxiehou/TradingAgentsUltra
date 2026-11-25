@@ -94,3 +94,10 @@ websockets==17.4
 xxhash==4.1.0
 yfinance==1.8.0
 zstandard==0.25.0
+
+# static analysis gate (D7 gate 2, ADR-009)
+ast-serialize==0.13.1
+librt==0.17.0
+mypy==2.4.1
+mypy-extensions==1.2.0
+pathspec==1.1.1

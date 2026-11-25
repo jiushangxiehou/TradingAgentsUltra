@@ -31,5 +31,8 @@ ruff>=0.16
 pyyaml>=6.0
 jsonschema>=4.23
 
+# static analysis gate (D7 gate 2, ADR-009)
+mypy>=1.11
+
 # NOTE: deepeval is heavy; install for the live prose-eval phase only.
 # deepeval>=0.0   # uncomment for phase 5

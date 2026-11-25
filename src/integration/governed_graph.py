@@ -192,9 +192,12 @@ class GuardedTradingAgentsGraph(TradingAgentsGraph):
         adapted = build_decision(
             final_state=final_state, rating=rating, intent=intent, available_cash=cash
         )
-        notes: list[str] = [
-            str(note.get("code")) for note in adapted.report.get("notes", []) if isinstance(note, dict)
-        ]
+        raw_notes = adapted.report.get("notes")
+        notes: list[str] = (
+            [str(note.get("code")) for note in raw_notes if isinstance(note, dict)]
+            if isinstance(raw_notes, list)
+            else []
+        )
 
         try:
             result = evaluate_decision(adapted.decision, self.guardrail_limits)
@@ -303,4 +306,3 @@ class GuardedTradingAgentsGraph(TradingAgentsGraph):
         settings["guardrail_limits"] = limits_payload(self.guardrail_limits)
         settings["trace_enabled"] = True
         return settings
-

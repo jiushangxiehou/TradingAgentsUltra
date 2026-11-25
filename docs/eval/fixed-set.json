@@ -1,0 +1,153 @@
+{
+  "$comment": "Fixed evaluation set for the semantic-evaluation gate (D7 gate 4, ADR-009 workflow). Deterministic: it replays prompt-constraint retention and guardrail decisions. The live model-output faithfulness/relevancy threshold (>= 0.6) is measured by test/live/test_live_prose.py, not here.",
+  "version": 1,
+  "thresholds": {
+    "prompt_constraint_retention": 0.6,
+    "decision_accuracy": 1,
+    "safety_escapes": 0
+  },
+  "prompt_constraints": [
+    {
+      "file": "Prompt.md",
+      "constraints": [
+        "Traceability",
+        "Interface contract",
+        "Scope boundaries",
+        "Testing strategy",
+        "STOP and wait for human approval"
+      ]
+    },
+    {
+      "file": "prompts/prompt_v1.0.yaml",
+      "constraints": [
+        "execution plan",
+        "stop for human approval",
+        "Extend the baseline, never replace it",
+        "ai-use-log.yaml"
+      ]
+    },
+    {
+      "file": "prompts/prompt_v1.1.yaml",
+      "constraints": [
+        "execution plan",
+        "stop for human approval",
+        "deterministic guardrail",
+        "never bypass"
+      ]
+    },
+    {
+      "file": ".opencode/rules.md",
+      "constraints": [
+        "Stop for approval before generating code",
+        "No non-agentic modification",
+        "Extend the baseline"
+      ]
+    },
+    {
+      "file": ".agent/rules.md",
+      "constraints": [
+        "at least **one negative test**",
+        "Safety-critical changes require"
+      ]
+    },
+    {
+      "file": "AGENTS.md",
+      "constraints": [
+        "Each architectural element maps to",
+        "Every invariant has at least one test",
+        "Submission tree"
+      ]
+    }
+  ],
+  "decision_cases": [
+    {
+      "id": "D1-legal-5pct",
+      "rating": "Buy",
+      "size_pct": 0.05,
+      "short_amount": 0,
+      "available_cash": 100000,
+      "expect_passed": true,
+      "expect_trigger": null
+    },
+    {
+      "id": "D2-boundary-10pct",
+      "rating": "Hold",
+      "size_pct": 0.1,
+      "short_amount": 0,
+      "available_cash": 100000,
+      "expect_passed": true,
+      "expect_trigger": null
+    },
+    {
+      "id": "D3-oversize",
+      "rating": "Buy",
+      "size_pct": 0.1001,
+      "short_amount": 0,
+      "available_cash": 100000,
+      "expect_passed": false,
+      "expect_trigger": "POSITION_LIMIT"
+    },
+    {
+      "id": "D4-short-equals-cash",
+      "rating": "Sell",
+      "size_pct": 0,
+      "short_amount": 50000,
+      "available_cash": 50000,
+      "expect_passed": true,
+      "expect_trigger": null
+    },
+    {
+      "id": "D5-short-above-cash",
+      "rating": "Sell",
+      "size_pct": 0,
+      "short_amount": 50001,
+      "available_cash": 50000,
+      "expect_passed": false,
+      "expect_trigger": "SHORT_EXCEEDS_CASH"
+    },
+    {
+      "id": "D6-illegal-rating",
+      "rating": "Strong Buy",
+      "size_pct": 0.05,
+      "short_amount": 0,
+      "available_cash": 100000,
+      "expect_passed": false,
+      "expect_trigger": "ILLEGAL_RATING"
+    },
+    {
+      "id": "D7-review-is-not-a-rating",
+      "rating": "REVIEW",
+      "size_pct": 0.05,
+      "short_amount": 0,
+      "available_cash": 100000,
+      "expect_passed": false,
+      "expect_trigger": "ILLEGAL_RATING"
+    },
+    {
+      "id": "D8-missing-size",
+      "rating": "Buy",
+      "size_pct": null,
+      "short_amount": 0,
+      "available_cash": 100000,
+      "expect_passed": false,
+      "expect_trigger": "MALFORMED_DECISION"
+    },
+    {
+      "id": "D9-both-illegal-and-oversize",
+      "rating": "Buy Now",
+      "size_pct": 0.5,
+      "short_amount": 0,
+      "available_cash": 100000,
+      "expect_passed": false,
+      "expect_trigger": "ILLEGAL_RATING"
+    }
+  ],
+  "model_baseline": {
+    "file": ".env.example",
+    "keys": {
+      "TRADINGAGENTS_LLM_PROVIDER": "deepseek",
+      "TRADINGAGENTS_DEEP_THINK_LLM": "deepseek-v4-flash",
+      "TRADINGAGENTS_QUICK_THINK_LLM": "deepseek-v4-flash"
+    }
+  }
+}

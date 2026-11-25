@@ -1,0 +1,104 @@
+# Test-approval manifest (D7 gate 1)
+#
+# Rule: a test file that guards a change must be approved by a human before the
+# implementation it guards is merged. scripts/gate_test_approval.py reads the
+# manifest at the BASE revision of the change, so an entry added in the same
+# change does not count as "approved before implementation".
+#
+# This file is itself human-only: CODEOWNERS requires the reviewer on
+# docs/test-approval.yaml, and a new entry without a named approver or a date is
+# rejected by the parser.
+#
+# approved_at is the date the test contract was reviewed, not the date the test
+# was edited.
+
+version: 1
+policy: >
+  Every changed test under test/ or tests/ must match an approval entry that
+  exists at the base revision. The approval records who reviewed the test
+  contract and why, so a merge cannot add a test that nobody signed off.
+
+approvals:
+  - id: TA-001
+    tests:
+      - "test/offline/test_guardrail.py"
+      - "test/offline/test_traceability.py"
+      - "test/offline/test_integration_decision.py"
+      - "test/offline/test_integration_gate.py"
+      - "test/offline/test_integration_graph.py"
+      - "test/offline/test_integration_trace.py"
+      - "test/offline/test_integration_end_to_end.py"
+      - "test/offline/test_integration_cli.py"
+    approved_by: "CUI Haoyu (60760270)"
+    approved_at: "2026-11-24"
+    rationale: >
+      Guardrail and trace test contract reviewed and approved before the build
+      stage (test-first red state). The integration tests extend the same
+      contract and were reviewed before the gate was wired into the graph.
+    requirements: [REQ-HARD-GUARDRAIL, REQ-TRACEABILITY]
+
+  - id: TA-002
+    tests:
+      - "test/offline/test_termination.py"
+    approved_by: "CUI Haoyu (60760270)"
+    approved_at: "2026-11-25"
+    rationale: >
+      Repeat/stall/budget termination cases reviewed before the analyst-loop
+      wiring; the controller API is tested ahead of its per-loop use.
+    requirements: [REQ-TERMINATION-DISCIPLINE]
+
+  - id: TA-003
+    tests:
+      - "test/offline/test_context_budget.py"
+    approved_by: "ZhuXuan (60377218)"
+    approved_at: "2026-11-25"
+    rationale: >
+      Strict configuration contract for the context budget: unset is disabled,
+      a partial pair or threshold > cap fails closed.
+    requirements: [REQ-CONTEXT-BUDGET]
+
+  - id: TA-004
+    tests:
+      - "test/live/test_live_prose.py"
+    approved_by: "CUI Haoyu (60760270)"
+    approved_at: "2026-11-25"
+    rationale: >
+      Live faithfulness/relevancy proxy agreed with its documented thresholds
+      (>= 0.6) before implementation; it is skipped without an API key and is
+      not part of the offline gate.
+    requirements: [REQ-CONTEXT-BUDGET]
+
+  - id: TA-005
+    tests:
+      - "test/offline/test_gates.py"
+      - "test/offline/test_structural_fitness.py"
+    approved_by: "CUI Haoyu (60760270)"
+    approved_at: "2026-11-25"
+    rationale: >
+      Negative tests for the blocking gates themselves (an unapproved test
+      must fail the gate, an undeclared baseline change must fail the
+      verifier) and the structural fitness checks that enforce ADR-007/008.
+    requirements: [REQ-TRACEABILITY, REQ-HARD-GUARDRAIL]
+
+  - id: TA-006
+    tests:
+      - "tests/test_context_budget_core.py"
+      - "tests/test_budget_agent_integration.py"
+      - "tests/news_context_budget_fixtures.py"
+    approved_by: "ZhuXuan (60377218)"
+    approved_at: "2026-11-25"
+    rationale: >
+      Budget core and agent-integration acceptance cases (thresholds, pairing,
+      one-time permit, zero HTTP on overage) reviewed with the feature owner.
+    requirements: [REQ-CONTEXT-BUDGET]
+
+  - id: TA-007
+    tests:
+      - "tests/test_debate_opening.py"
+      - "tests/test_structured_agents.py"
+    approved_by: "Fan Hao (60835652)"
+    approved_at: "2026-11-25"
+    rationale: >
+      Structured-debate schema, evidence and termination cases reviewed with the
+      feature owner before the graph wiring was merged.
+    requirements: [REQ-STRUCTURED-DEBATE]

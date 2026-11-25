@@ -1,0 +1,192 @@
+{
+  "$comment": "Declared differences from the pinned TradingAgents 0.7.1 baseline. Consumed by scripts/verify_baseline.py (ADR-008). A file may differ only if it is declared here; undeclared drift still fails the gate.",
+  "version": 1,
+  "policy_doc": "docs/architecture/baseline-overrides.md",
+  "decision": "docs/architecture/adr/008-declared-baseline-overrides.md",
+  "project_owned": [
+    {
+      "path": "README.md",
+      "reason": "Project README for the CS5351 deliverable (D6/D8 instructions).",
+      "adr": "ADR-008",
+      "owner": "CUI Haoyu (60760270)"
+    },
+    {
+      "path": ".gitignore",
+      "reason": "Adds project-only ignores (.venv, artifacts, local GUI workspace).",
+      "adr": "ADR-008",
+      "owner": "CUI Haoyu (60760270)"
+    },
+    {
+      "path": ".env.example",
+      "reason": "Adds a CS5351 defaults block; no secret values.",
+      "adr": "ADR-008",
+      "owner": "CUI Haoyu (60760270)"
+    },
+    {
+      "path": "requirements.txt",
+      "reason": "Pins the project's flattened dependency list, including the gate tooling.",
+      "adr": "ADR-008",
+      "owner": "CUI Haoyu (60760270)"
+    },
+    {
+      "path": ".github/workflows/ci.yml",
+      "reason": "Replaces the upstream workflow with the six CS5351 blocking gates.",
+      "adr": "ADR-008",
+      "owner": "CUI Haoyu (60760270)"
+    }
+  ],
+  "dev_overrides": [
+    {
+      "path": "tradingagents/agents/managers/portfolio_manager.py",
+      "owner": "Fan Hao (60835652)",
+      "requirement": "REQ-STRUCTURED-DEBATE",
+      "commit": "a871245",
+      "reason": "Preserves structured debate turns, metrics and termination in the final state (ADR-002).",
+      "adr": "ADR-002 / ADR-007"
+    },
+    {
+      "path": "tradingagents/agents/managers/research_manager.py",
+      "owner": "Fan Hao (60835652)",
+      "requirement": "REQ-STRUCTURED-DEBATE",
+      "commit": "a871245",
+      "reason": "Reads the structured debate record instead of free-form history.",
+      "adr": "ADR-002 / ADR-007"
+    },
+    {
+      "path": "tradingagents/agents/researchers/bull_researcher.py",
+      "owner": "Fan Hao (60835652)",
+      "requirement": "REQ-STRUCTURED-DEBATE",
+      "commit": "a871245",
+      "reason": "Emits a schema-validated DebateTurn with evidence references.",
+      "adr": "ADR-002 / ADR-007"
+    },
+    {
+      "path": "tradingagents/agents/researchers/bear_researcher.py",
+      "owner": "Fan Hao (60835652)",
+      "requirement": "REQ-STRUCTURED-DEBATE",
+      "commit": "a871245",
+      "reason": "Emits a schema-validated DebateTurn with evidence references.",
+      "adr": "ADR-002 / ADR-007"
+    },
+    {
+      "path": "tradingagents/agents/risk_mgmt/aggressive_debator.py",
+      "owner": "Fan Hao (60835652)",
+      "requirement": "REQ-STRUCTURED-DEBATE",
+      "commit": "a871245",
+      "reason": "Risk debate turn is schema-validated and audited.",
+      "adr": "ADR-002 / ADR-007"
+    },
+    {
+      "path": "tradingagents/agents/risk_mgmt/conservative_debator.py",
+      "owner": "Fan Hao (60835652)",
+      "requirement": "REQ-STRUCTURED-DEBATE",
+      "commit": "a871245",
+      "reason": "Risk debate turn is schema-validated and audited.",
+      "adr": "ADR-002 / ADR-007"
+    },
+    {
+      "path": "tradingagents/agents/risk_mgmt/neutral_debator.py",
+      "owner": "Fan Hao (60835652)",
+      "requirement": "REQ-STRUCTURED-DEBATE",
+      "commit": "a871245",
+      "reason": "Risk debate turn is schema-validated and audited.",
+      "adr": "ADR-002 / ADR-007"
+    },
+    {
+      "path": "tradingagents/agents/state.py",
+      "owner": "Fan Hao (60835652)",
+      "requirement": "REQ-STRUCTURED-DEBATE",
+      "commit": "a871245",
+      "reason": "Additive debate fields (turns/metrics/termination) on the graph state.",
+      "adr": "ADR-002 / ADR-007"
+    },
+    {
+      "path": "tradingagents/graph/conditional_logic.py",
+      "owner": "Fan Hao (60835652)",
+      "requirement": "REQ-STRUCTURED-DEBATE",
+      "commit": "a871245",
+      "reason": "Routes on an effective termination decision, not only on a turn counter.",
+      "adr": "ADR-002 / ADR-007"
+    },
+    {
+      "path": "tradingagents/graph/propagation.py",
+      "owner": "Fan Hao (60835652)",
+      "requirement": "REQ-STRUCTURED-DEBATE",
+      "commit": "a871245",
+      "reason": "Carries the structured debate state into the run state.",
+      "adr": "ADR-002 / ADR-007"
+    },
+    {
+      "path": "tradingagents/agents/analysts/turn.py",
+      "owner": "ZhuXuan (60377218)",
+      "requirement": "REQ-CONTEXT-BUDGET",
+      "commit": "3313ad0",
+      "reason": "Analyst tool turn goes through the budgeted model boundary.",
+      "adr": "ADR-001 / ADR-007"
+    },
+    {
+      "path": "tradingagents/agents/analysts/sentiment_analyst.py",
+      "owner": "ZhuXuan (60377218)",
+      "requirement": "REQ-CONTEXT-BUDGET",
+      "commit": "3313ad0",
+      "reason": "Structured/free-text invocations are budget-counted.",
+      "adr": "ADR-001 / ADR-007"
+    },
+    {
+      "path": "tradingagents/agents/post_screen.py",
+      "owner": "ZhuXuan (60377218)",
+      "requirement": "REQ-CONTEXT-BUDGET",
+      "commit": "3313ad0",
+      "reason": "Optional Jev pre-screen is skipped when a budget is enabled (no verifiable count).",
+      "adr": "ADR-001 / ADR-007"
+    },
+    {
+      "path": "tradingagents/agents/structured.py",
+      "owner": "ZhuXuan (60377218)",
+      "requirement": "REQ-CONTEXT-BUDGET",
+      "commit": "3313ad0",
+      "reason": "Structured-output path is routed through the budgeted runnable.",
+      "adr": "ADR-001 / ADR-007"
+    },
+    {
+      "path": "tradingagents/memory/reflection.py",
+      "owner": "ZhuXuan (60377218)",
+      "requirement": "REQ-CONTEXT-BUDGET",
+      "commit": "3313ad0",
+      "reason": "Reflection request is budget-counted with its own trade date.",
+      "adr": "ADR-001 / ADR-007"
+    },
+    {
+      "path": "tradingagents/llm_clients/factory.py",
+      "owner": "ZhuXuan (60377218)",
+      "requirement": "REQ-CONTEXT-BUDGET",
+      "commit": "7de8935",
+      "reason": "Installs the CityU local-estimate adapter when the budget is enabled.",
+      "adr": "ADR-001 / ADR-007"
+    },
+    {
+      "path": "tradingagents/graph/trading_graph.py",
+      "owner": "ZhuXuan (60377218)",
+      "requirement": "REQ-CONTEXT-BUDGET",
+      "commit": "a9d23ec",
+      "reason": "Installs the budgeted model boundary for the graph agents.",
+      "adr": "ADR-001 / ADR-007"
+    },
+    {
+      "path": "tradingagents/default_config.py",
+      "owner": "ZhuXuan (60377218) + Fan Hao (60835652)",
+      "requirement": "REQ-CONTEXT-BUDGET / REQ-STRUCTURED-DEBATE",
+      "commit": "a9d23ec",
+      "reason": "Adds context_input_* and debate_* configuration keys with baseline defaults.",
+      "adr": "ADR-001 / ADR-002 / ADR-007"
+    },
+    {
+      "path": "tradingagents/graph/setup.py",
+      "owner": "CUI Haoyu (60760270)",
+      "requirement": "REQ-TERMINATION-DISCIPLINE",
+      "commit": "3f727bb",
+      "reason": "Wires the analyst tool loop to should_terminate (repeat + max rounds).",
+      "adr": "ADR-005 / ADR-007"
+    }
+  ]
+}

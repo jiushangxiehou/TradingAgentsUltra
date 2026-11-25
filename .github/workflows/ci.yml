@@ -1,7 +1,20 @@
-# CS5351 CI/CD — Blocking Gates (D4/D7)
-# Implements the six required blocking gates + branch protection policy.
-# Every job that fails blocks a merge unless the failure is a documented
-# non-blocking path.
+# CS5351 CI/CD — Blocking Gates (D4/D7, ADR-009)
+#
+# Six gates, each a separate job, plus the baseline-integrity gate that ADR-008
+# added. Every job is blocking: a red check on a pull request or push to a
+# protected branch blocks the merge.
+#
+#   1. test-approval     the changed tests are approved in the BASE manifest
+#   2. static-analysis   ruff + mypy + pip check
+#      safety-paths      contract / security / API surface / permission checks
+#   3. schema-gate       requirements.yaml validated against req-schema.json
+#   4. semantic-eval     fixed eval set replayed (prompts + guardrail + models)
+#   5. regression        offline suite + the full upstream suite
+#   6. ai-use-log        code/prompt change requires docs/ai-use-log.yaml
+#
+# Branch protection (required checks + human review on safety paths) is
+# documented in docs/architecture/branch-protection.md; it is a repository
+# setting, not a workflow step.
 
 name: CS5351 Blocking Gates
 
@@ -11,9 +24,25 @@ on:
   pull_request:
     branches: ["main", "dev", "develop", "feature-c"]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUTF8: "1"
+  CI: "1"
+  TRADINGAGENTS_NO_UPDATE_CHECK: "1"
+  # Read by scripts/gate_test_approval.py and scripts/gate_ai_use_log.py.
+  GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+  GITHUB_BASE_REF: ${{ github.base_ref }}
+
 jobs:
-  # ---- Gate 3: Schema gate — validate requirements registry against its schema.
   schema-gate:
+    name: "Gate 3 — schema"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,76 +51,129 @@ jobs:
       - name: Install validators
         run: pip install pyyaml jsonschema
       - name: Validate requirements.yaml against req-schema.json
-        run: |
-          python - <<'PY'
-          import json, yaml, jsonschema
-          with open("docs/req/req-schema.json", encoding="utf-8") as f:
-              schema = json.load(f)
-          with open("docs/req/requirements.yaml", encoding="utf-8") as f:
-              data = yaml.safe_load(f)
-          jsonschema.validate(data, schema)
-          print("schema-gate: PASS")
-          PY
+        run: python scripts/verify_schema.py
 
-  # ---- Gate 2: Static analysis — lint, type-check, dependency check.
   static-analysis:
+    name: "Gate 2 — static analysis"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
-      - name: Install analysis dependencies
+      - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Lint and dependency check
-        run: |
-          ruff check src test
-          pip check
-      # Type checker / safety-path contract checks remain a follow-up; the
-      # lint and dependency layers are real blocking checks now.
+      - name: Install the baseline (root layout)
+        run: pip install -e . --no-deps
+      - name: Lint
+        run: ruff check src test scripts
+      - name: Type check (project-owned modules, ADR-009)
+        run: python -m mypy
+      - name: Dependency check
+        run: pip check
 
-  # ---- Gate 1: Test approval gate + Gate 5: Regression gate.
-  tests:
+  safety-paths:
+    name: "Gate 2 — safety paths"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
-      - name: Install deps
-        run: pip install -r requirements.txt pytest
-      - name: Install the pinned baseline (root layout or vendor layout)
-        run: |
-          if [ -d vendor/tradingagents-0.7.x ]; then
-            pip install -e vendor/tradingagents-0.7.x --no-deps
-          else
-            pip install -e . --no-deps
-          fi
-      - name: Offline / deterministic tests (no API)
-        run: pytest test/offline -m offline -q
-      - name: Regression — full prior suite
-        run: pytest -m "offline" -q   # live tests need keys; offline = deterministic
-      # Gate 1 note: assert the PR's tests were approved before impl — enforce
-      # via a review requirement on the test files (see branch protection).
+      - name: Install dependencies
+        run: pip install -r requirements.txt && pip install -e . --no-deps
+      - name: Contract / security / API surface / permission checks
+        run: python scripts/check_safety_paths.py --quiet
 
-  # ---- Gate 6: AI-use log gate — PR changing code/prompts must update the log.
-  ai-use-log:
+  baseline-integrity:
+    name: "ADR-008 — baseline integrity"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Verify the pinned baseline against the declared overrides
+        run: python scripts/verify_baseline.py --strict
+
+  test-approval:
+    name: "Gate 1 — test approval"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - name: Block if code/prompts changed without ai-use-log.yaml
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install validators
+        run: pip install pyyaml
+      - name: Every changed test is approved in the base manifest
+        run: python scripts/gate_test_approval.py --list
+
+  offline-tests:
+    name: "Gate 5 — offline suite"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install dependencies
+        run: pip install -r requirements.txt && pip install -e . --no-deps
+      - name: Deterministic offline tests (no API keys)
+        run: python -m pytest test/offline -m offline -q
+
+  regression:
+    name: "Gate 5 — upstream regression"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install dependencies
+        run: pip install -r requirements.txt && pip install -e . --no-deps
+      - name: Full prior suite (the pinned baseline own tests)
+        run: python -m pytest tests -q -m "not integration"
+
+  semantic-eval:
+    name: "Gate 4 — semantic evaluation"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install dependencies
+        run: pip install -r requirements.txt && pip install -e . --no-deps
+      - name: Replay the fixed evaluation set
+        run: python scripts/gate_semantic_eval.py
+
+  ai-use-log:
+    name: "Gate 6 — AI-use log"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Code or prompt change requires an AI-use log update
         run: |
-          if git diff --name-only HEAD^ HEAD | grep -Eq '^(src/|prompts/)' \
-             && ! git diff --name-only HEAD^ HEAD | grep -q '^docs/ai-use-log.yaml'; then
-            echo "::error::AI-use log gate: code/prompts changed without updating docs/ai-use-log.yaml"
+          git fetch --no-tags --prune origin "+refs/heads/*:refs/remotes/origin/*" || true
+          python scripts/gate_ai_use_log.py --list
+
+  gate-summary:
+    name: "All blocking gates"
+    if: always()
+    needs:
+      - schema-gate
+      - static-analysis
+      - safety-paths
+      - baseline-integrity
+      - test-approval
+      - offline-tests
+      - regression
+      - semantic-eval
+      - ai-use-log
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if any gate failed
+        run: |
+          if echo '${{ toJSON(needs) }}' | grep -q '"result": "failure"|"result":"failure"|"result": "cancelled"|"result":"cancelled"'; then
+            echo "::error::A blocking gate failed; the merge is blocked."
             exit 1
           fi
-          echo "ai-use-log: PASS"
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-# Gate 4 (semantic evaluation) and Gate 1 (test approval via review) are
-# intentionally placeholders here — wire them once the implementation exists.
-# Branch protection (bypass check) must require these CI checks + human review
-# on safety-critical paths. This is a skeleton, not the finished policy.
+          echo "all blocking gates passed"

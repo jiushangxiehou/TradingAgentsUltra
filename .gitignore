@@ -224,6 +224,10 @@ reports/
 
 
 # --- CS5351 team-app additions ---
+# pytest tmp_path factories run from the repository root
+pytest-of-*/
+tradingagents-tests-*/
+
 # Local-only environment and build artifacts. The submission must not include .venv/.
 .venv/
 __pycache__/
@@ -242,4 +246,3 @@ vendor/.baseline/ta.tar.gz
 
 # Local Tkinter console; kept out of the dev branch for now.
 /gui/
-

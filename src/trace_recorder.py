@@ -208,9 +208,14 @@ def _require_utc_iso8601(value: object) -> str:
         parsed = datetime.fromisoformat(text)
     except ValueError as exc:
         raise TraceError(f"fetch_timestamp is not ISO-8601: {text!r}") from exc
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
+    if parsed.tzinfo is None:
         raise TraceError(f"fetch_timestamp must be timezone-aware: {text!r}")
-    if parsed.utcoffset().total_seconds() != 0:
+    # Narrow once: a tzinfo implementation may return None, and calling
+    # total_seconds() on that None would raise instead of a TraceError.
+    offset = parsed.utcoffset()
+    if offset is None:
+        raise TraceError(f"fetch_timestamp must be timezone-aware: {text!r}")
+    if offset.total_seconds() != 0:
         raise TraceError(f"fetch_timestamp must be UTC (zero offset): {text!r}")
     return text
 

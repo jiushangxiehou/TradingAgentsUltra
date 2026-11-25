@@ -1,0 +1,132 @@
+{
+  "$comment": "Machine-readable architectural element map (D3 structural constraints, ADR-007). test/offline/test_structural_fitness.py and scripts/check_safety_paths.py read it; docs/code-governance/structural-constraints.md must mention every module listed here.",
+  "version": 1,
+  "submission_tree": "dev",
+  "elements": [
+    {
+      "element": "context assembler",
+      "owner": "ZhuXuan (60377218)",
+      "requirement": "REQ-CONTEXT-BUDGET",
+      "invariant": "INV-CONTEXT-BUDGET",
+      "adr": "ADR-001",
+      "modules": [
+        "tradingagents/graph/context_budget.py",
+        "tradingagents/graph/budgeted_model.py",
+        "tradingagents/llm_clients/deepseek_context_adapter.py"
+      ],
+      "facade": "src/context_assembler.py",
+      "facade_exports": [
+        "build_context",
+        "budget_and_send",
+        "resolve_budget",
+        "is_budget_enabled",
+        "ContextBudgetBlocked",
+        "UnverifiableCountError"
+      ]
+    },
+    {
+      "element": "structured debater",
+      "owner": "Fan Hao (60835652)",
+      "requirement": "REQ-STRUCTURED-DEBATE",
+      "invariant": null,
+      "adr": "ADR-002",
+      "modules": [
+        "tradingagents/debate/engine.py",
+        "tradingagents/debate/schemas.py",
+        "tradingagents/debate/evidence.py"
+      ],
+      "facade": "src/structured_debater.py",
+      "facade_exports": [
+        "DebateTurn",
+        "DebateClaim",
+        "DebateRebuttal",
+        "TurnAudit",
+        "TerminationDecision",
+        "bind_debate_turn",
+        "run_debate_turn",
+        "evaluate_termination"
+      ]
+    },
+    {
+      "element": "trace recorder",
+      "owner": "CUI Haoyu (60760270)",
+      "requirement": "REQ-TRACEABILITY",
+      "invariant": "INV-TRACE-COMPLETENESS",
+      "adr": "ADR-003",
+      "modules": [
+        "src/trace_recorder.py",
+        "src/integration/trace_adapter.py"
+      ],
+      "facade": "src/trace_recorder.py",
+      "facade_exports": [
+        "TraceRecorder",
+        "DataSnapshot",
+        "TraceLink",
+        "AuditReport",
+        "TraceError"
+      ]
+    },
+    {
+      "element": "guardrail",
+      "owner": "CUI Haoyu (60760270)",
+      "requirement": "REQ-HARD-GUARDRAIL",
+      "invariant": "INV-GUARDRAIL-ZERO-ESCAPE",
+      "adr": "ADR-004",
+      "modules": [
+        "src/guardrail.py",
+        "src/integration/decision_adapter.py",
+        "src/integration/gate_support.py",
+        "src/integration/governed_graph.py"
+      ],
+      "facade": "src/guardrail.py",
+      "facade_exports": [
+        "Decision",
+        "GuardrailLimits",
+        "GuardrailResult",
+        "evaluate_decision"
+      ]
+    },
+    {
+      "element": "termination controller",
+      "owner": "Fan Hao (60835652)",
+      "requirement": "REQ-TERMINATION-DISCIPLINE",
+      "invariant": null,
+      "adr": "ADR-005",
+      "modules": [
+        "tradingagents/graph/termination.py"
+      ],
+      "facade": "src/termination_controller.py",
+      "facade_exports": [
+        "should_terminate",
+        "TerminationController",
+        "TerminationDecision",
+        "REPEAT_THRESHOLD",
+        "STALL_THRESHOLD",
+        "tool_round_signatures"
+      ]
+    }
+  ],
+  "pure_modules": [
+    "src/guardrail.py",
+    "src/trace_recorder.py"
+  ],
+  "pure_module_import_allowlist": {
+    "src/guardrail.py": [
+      "hashlib",
+      "json",
+      "math",
+      "dataclasses",
+      "enum",
+      "typing",
+      "__future__"
+    ],
+    "src/trace_recorder.py": [
+      "hashlib",
+      "dataclasses",
+      "datetime",
+      "enum",
+      "typing",
+      "__future__"
+    ]
+  }
+}

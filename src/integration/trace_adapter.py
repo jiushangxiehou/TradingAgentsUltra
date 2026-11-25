@@ -65,7 +65,7 @@ import hashlib
 import json
 import threading
 from dataclasses import dataclass
-from typing import Final, Self
+from typing import Any, Final, Self
 
 from src.trace_recorder import TraceRecorder
 
@@ -124,7 +124,9 @@ class PatchTarget:
     kind: str
     method: str = ""
     source: str = ""
-    router_module: object | None = None
+    # The router is the baseline module; annotate it `Any` rather than `object`
+    # so the patch wrapper can call its own methods without a cast at every use.
+    router_module: Any | None = None
 
 
 @dataclass(frozen=True)
@@ -364,7 +366,7 @@ class DataCapture:
         with self._lock:
             self._errors.append(message)
 
-    def _route_wrapper(self, target: PatchTarget, original: object):
+    def _route_wrapper(self, target: PatchTarget, original: Any):
         def route(*args, **kwargs):
             method = args[0] if args else kwargs.get("method", "")
             try:
@@ -377,7 +379,7 @@ class DataCapture:
 
         return route
 
-    def _direct_wrapper(self, target: PatchTarget, original: object):
+    def _direct_wrapper(self, target: PatchTarget, original: Any):
         def direct(*args, **kwargs):
             try:
                 result = original(*args, **kwargs)

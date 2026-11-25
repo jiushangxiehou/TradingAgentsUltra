@@ -1,0 +1,25 @@
+# Review ownership (D7 branch protection, ADR-009).
+#
+# GitHub uses this file to request reviewers automatically. Pair it with
+# branch protection that requires review on these paths
+# (docs/architecture/branch-protection.md).
+#
+# The other members' GitHub handles are not recorded in the repository; add
+# them when known (the feature owners are ZhuXuan 60377218 and
+# Fan Hao 60835652).
+
+*                                   @jiushangxiehou
+
+# Safety-critical and decision artifacts: never a silent edit.
+/src/guardrail.py                   @jiushangxiehou
+/src/trace_recorder.py              @jiushangxiehou
+/src/integration/                   @jiushangxiehou
+/docs/architecture/                 @jiushangxiehou
+/docs/code-governance/              @jiushangxiehou
+/.opencode/                         @jiushangxiehou
+/.agent/                            @jiushangxiehou
+/docs/test-approval.yaml            @jiushangxiehou
+/docs/ai-use-log.yaml               @jiushangxiehou
+/scripts/baseline-overrides.json    @jiushangxiehou
+/scripts/element-map.json           @jiushangxiehou
+/.github/workflows/                 @jiushangxiehou

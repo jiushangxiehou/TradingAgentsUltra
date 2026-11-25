@@ -156,11 +156,14 @@ def build_decision(
     }
     missing_fields = [name for name in REQUIRED_DECISION_FIELDS if not supplied[name]]
 
+    # The values are deliberately typed `object`: the frozen guardrail, not this
+    # adapter, decides what is malformed (policy A+B-strict, ADR-006). The
+    # ignores are the type-level statement of that decision.
     decision = Decision(
-        rating=rating,
-        size_pct=values["size_pct"],
-        short_amount=values["short_amount"],
-        available_cash=values["available_cash"],
+        rating=rating,  # type: ignore[arg-type]
+        size_pct=values["size_pct"],  # type: ignore[arg-type]
+        short_amount=values["short_amount"],  # type: ignore[arg-type]
+        available_cash=values["available_cash"],  # type: ignore[arg-type]
         instrument_id=instrument_id,
     )
 
