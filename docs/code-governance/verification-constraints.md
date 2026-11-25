@@ -37,8 +37,8 @@ pretending the trees are identical.
 
 | Requirement | Implementation | Primary tests | Status |
 |---|---|---|---|
-| REQ-CONTEXT-BUDGET | dev: `tradingagents/graph/context_budget.py`, `budgeted_model.py`, `llm_clients/deepseek_context_adapter.py`; team-app: `src/context_assembler.py` stub | `tests/test_context_budget_core.py`, `tests/test_budget_agent_integration.py`, `tests/news_context_budget_fixtures.py` (dev); `test/offline/test_context_budget.py` is a stub | **Implemented/tested on dev; not yet in team-app** |
-| REQ-STRUCTURED-DEBATE | dev: `tradingagents/debate/**`, conditional logic, researcher/risk wiring; team-app: `src/structured_debater.py` stub | `tests/test_debate_opening.py`, `tests/test_structured_agents.py`, graph E2E (dev); no dedicated team-app test | **Implemented/tested on dev; not yet in team-app** |
+| REQ-CONTEXT-BUDGET | dev: `tradingagents/graph/context_budget.py`, `budgeted_model.py`, `llm_clients/deepseek_context_adapter.py`; team-app: `src/context_assembler.py` stub | `tests/test_context_budget_core.py`, `tests/test_budget_agent_integration.py`, `tests/news_context_budget_fixtures.py` (dev); `test/offline/test_context_budget.py` is a stub | **Implemented/tested on dev; feature-c stub** |
+| REQ-STRUCTURED-DEBATE | dev: `tradingagents/debate/**`, conditional logic, researcher/risk wiring; team-app: `src/structured_debater.py` stub | `tests/test_debate_opening.py`, `tests/test_structured_agents.py`, graph E2E (dev); no dedicated team-app test | **Implemented/tested on dev; feature-c stub** |
 | REQ-TRACEABILITY | `src/trace_recorder.py`, `src/integration/trace_adapter.py` | `test/offline/test_traceability.py`, `test/offline/test_integration_trace.py`, `test/offline/test_integration_end_to_end.py` | **Complete (CUI Haoyu)** |
 | REQ-HARD-GUARDRAIL | `src/guardrail.py`, `src/integration/decision_adapter.py`, `gate_support.py`, `governed_graph.py` | `test/offline/test_guardrail.py`, `test_integration_decision.py`, `test_integration_gate.py`, `test_integration_end_to_end.py` | **Complete (CUI Haoyu)** |
 | REQ-TERMINATION-DISCIPLINE | `src/termination_controller.py` is a constant-only stub | `test/offline/test_termination.py` raises `NotImplementedError` | **Missing** |
@@ -65,7 +65,35 @@ pretending the trees are identical.
   `test/live/test_live_prose.py` is still a `NotImplementedError` stub and the
   semantic-evaluation CI gate is absent. This is the main unmet D4/D7 item.
 
+## REQ-CONTEXT-BUDGET evidence (feature-z acceptance)
+
+- **Structural:** Graph setup installs [BudgetedModel](../../tradingagents/graph/budgeted_model.py)
+  for the existing agent factories. Test coverage includes tool exchanges,
+  structured schemas, Reflection and checkpoint recovery. Case identifiers
+  are linked in the [trace matrix](../architecture/trace-matrix.md#req-context-budget-evidence).
+- **Regression:** Merged dev `a8597af236bbedaa862d7a3a3c1a7d0d2a9984ae` was
+  tested in a network-isolated environment with the following invocations.
+
+  ```bash
+  python -m pytest -q -p no:cacheprovider -m "not live and not integration" tests/test_context_budget_core.py test/offline/test_context_budget.py
+  python -m pytest -q -p no:cacheprovider -m "not live and not integration" tests/test_budget_agent_integration.py
+  python -m pytest -q -p no:cacheprovider -m "not live and not integration" test/offline tests
+  ```
+
+  The first command recorded 73 core passes and the team's unimplemented
+  `test_context_within_budget` placeholder failed with `NotImplementedError`.
+  The second recorded 18 passes. The third recorded 1932 passes, 2 failures,
+  1 skip, 1 deselection and 100 passing subtests. Its second failure was the
+  team's `test_terminates_on_repeat` placeholder. The existing CI offline
+  marker selection does not cover the budget files in `tests/`; the commands
+  above record direct evidence, without claiming a CI change.
+- **Behavioral:** SDK Mock HTTP proves final-body identity and zero sends on
+  an over-cap request. The paired fixture preserved 2/2 facts and 5/5 standing
+  constraints. This evidence concerns synthetic input faithfulness and local
+  estimates. The model output quality gate and provider token parity were not
+  run in this acceptance.
+
 > **CUI Haoyu note:** the guardrail and traceability rows and their negative
-> tests are mine and were verified locally. The context-budget/structured-debate
-> rows are based on the dev feature branches; they are not yet ported into
-> `team-app`. Termination has no implementation in either tree.
+> tests are mine and were verified locally. The context-budget evidence is the
+> feature-z owner's acceptance run; it is recorded here as team evidence, not
+> as my test result. Termination has no implementation in either tree.

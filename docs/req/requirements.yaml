@@ -37,21 +37,33 @@ requirements:
     type: performance            # resource/context efficiency
     title: "Per-agent context budget with compaction"
     statement: >
-      Every agent invocation that assembles context must enforce a per-run
-      token budget. When the assembled context exceeds a configurable
-      compaction threshold, the context must be compressed (deduplicate →
-      prioritise → budget → compact) before injection into the model, so the
-      agent is not re-fed an ever-growing, unbounded history.
+      When context budgeting is enabled, guard each model request made by a
+      Graph agent or Reflection, including tool turns, tool follow-ups,
+      structured-output bindings and no-tool wrap-up. Independently configure
+      context_input_hard_cap_tokens and context_input_compaction_threshold_tokens.
+      Accept a complete pair of positive integers with threshold <= cap. Both
+      default to None, preserving the original execution path. Values 8000 and
+      6000 are example cap and threshold settings, not defaults. For the
+      configured CityU DeepSeek model and endpoint, measure the complete frozen
+      request JSON in UTF-8 bytes as the local_token_estimate and set
+      counter_exact=false. Provider usage.prompt_tokens is a post-response
+      observation and does not authorize a send.
     fit_criterion: >
-      METRIC: context_tokens_injected_per_call;
-      THRESHOLD: <= CONTEXT_BUDGET (default 8000);
-      VERIFY: instrument the context-assembly pipeline to measure tokens per
-      call; assert the injected context never exceeds the budget. On compaction
-      (observed when raw context > COMPACTION_THRESHOLD default 6000), assert
-      that critical invariants and standing constraints survive re-injection
-      (verify via a re-injection test), and that post-compaction output quality
-      (faithfulness score) drops by no more than a configurable acceptability
-      bound (default 0.1).
+      METRIC: final per-request count in the adapter's declared budget units;
+      THRESHOLD: <= explicitly configured hard cap when budgeting is enabled;
+      VERIFY: test_na_03_04_05_threshold_boundaries and
+      test_na_06_07_cap_minus_and_equal_send exercise threshold and cap
+      boundaries. test_cityu_auto_estimate_compacts_and_enforces_local_cap
+      verifies no compaction below threshold, a bounded compaction pass
+      and final re-count above threshold, and zero SDK Mock HTTP requests if
+      the final request still exceeds the cap. test_paired_news_faithfulness_on_sdk_wire
+      verifies verbatim standing constraints and retained fact fields on the
+      paired synthetic input. test_live_graph_all_agent_edges_and_reflection_use_counted_sdk_requests
+      verifies coverage of model edges including tools and structured schema;
+      test_disabled_news_graph_preserves_legacy_sdk_bytes verifies the off path.
+      The proposed acceptability bound for actual model output faithfulness
+      remains 0.1; the paired synthetic test measures input evidence retention
+      and does not establish this output-quality threshold or provider token parity.
     priority: Must               # MoSCoW
     tradeoff: >
       Compaction trades fidelity for token savings. The explicit tradeoff is
