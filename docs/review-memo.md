@@ -214,5 +214,26 @@
 - **Verdict:** **APPROVE** for the consolidation; the two non-raw D5 parts are
   declared and tracked in the debt register.
 
+
+## PR-010: Section 5 structure conformance
+
+- **Author:** OpenCode coding agent (supervised by CUI Haoyu)  |  **Reviewer:** CUI Haoyu  |  **Date:** 2026-11-25
+- **Linked requirement(s):** D5, D6, D8 (structure), D4 (records)
+- **Review unit:** transcripts naming, transcripts/README.md, README.md,
+  src/README.md, test/offline/test_structural_fitness.py.
+- **Spec alignment:** every member now has a <student-id>-<name>.md transcript
+  (ZhuXuan renamed, Fan Hao added), README documents the full suite and where
+  the application source lives, and the tree matches Section 5 of the brief.
+- **Architecture alignment:** documentation only; src/README.md restates the
+  ADR-007 element map and adds no module boundary.
+- **Code & test quality:** the structural fitness test asserts the per-member
+  naming; 476 offline tests pass; ruff, mypy, schema, baseline and the gate
+  scripts are green.
+- **Security & efficiency:** no secrets; the two member records are the same
+  declared non-raw records, not new evidence.
+- **Operational metadata:** AI-use log entry 015; report, D4 plan and test
+  counts updated (476 tests, 15 log entries).
+- **Verdict:** **APPROVE**.
+
 <!-- Append new memos below. No GitHub PRs were used; the review unit is the
 feature commit or integration merge. -->
