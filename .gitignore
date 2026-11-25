@@ -240,5 +240,3 @@ vendor/.baseline/ta.tar.gz
 .env
 .env.enterprise
 
-# D5 session transcripts stay local; they are not published to the remote.
-transcripts/
