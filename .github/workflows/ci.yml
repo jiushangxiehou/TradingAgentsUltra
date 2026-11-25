@@ -7,9 +7,9 @@ name: CS5351 Blocking Gates
 
 on:
   push:
-    branches: ["main", "develop", "feature-c"]
+    branches: ["main", "dev", "develop", "feature-c"]
   pull_request:
-    branches: ["main", "develop", "feature-c"]
+    branches: ["main", "dev", "develop", "feature-c"]
 
 jobs:
   # ---- Gate 3: Schema gate — validate requirements registry against its schema.
