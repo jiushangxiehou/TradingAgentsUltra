@@ -41,7 +41,10 @@ Mock 计数使用完整 JSON 的 UTF-8 字节数。这是相同请求体的离�
 | xAI、Qwen、GLM、MiniMax、OpenRouter、Mistral、Kimi、Groq、NVIDIA、Ollama、openai_compatible | 同上，兼容 Chat Completions 本身不能证明计数一致 |
 | TypeSafe Jev | 未支持，预算开启时跳过可选预筛 |
 
-## 实测与剩余验收
+## feature-z 历史实测与剩余验收
+
+以下为个人分支历史记录。完成交付的 feature-z 提交为
+`7de8935684c769515e50fa81690252620d091c80`；合版数据另列。
 
 - python -m pytest tests/test_context_budget_core.py -q，73 通过。
 - python -m pytest tests/test_budget_agent_integration.py -q，18 通过。
@@ -51,3 +54,28 @@ Mock 计数使用完整 JSON 的 UTF-8 字节数。这是相同请求体的离�
 - 本地预算、约束保留和合成样本保真通过离线验收。真实 CityU 冒烟、供应商实际 Token 差异和更大语料上的模型输出质量不在本轮离线结论内。逐条供应商 provenance 仍取决于数据源，自由文本聚合提示保守整体保留，超出本地上限时阻断。
 
 [新闻接入](stage-5.2-phase-3-news-integration.md) · [Agent 调用清单](stage-5.2-phase-4-all-agents.md)
+
+## 最新 dev 合版验收与个人交付
+
+本需求对应 [需求定义](req/requirements.yaml)、[ADR-001](architecture/adr/001-context-budgeting.md)、
+[追溯表](architecture/trace-matrix.md#req-context-budget-evidence) 和
+[验证规则](code-governance/verification-constraints.md#req-context-budget-evidence)。
+Graph 原有的数据检索继续提供带分析日期的证据；预算只处理将发送给模型的上下文，
+不另建检索系统。个人工作记录见 [AI-use log](ai-use-log.yaml)。
+
+在独立工作区实测合版 dev
+`a8597af236bbedaa862d7a3a3c1a7d0d2a9984ae`，该提交包含 feature-z。
+运行使用只有回环、无外网路由的隔离环境。
+
+| 实际运行 | 结果 |
+|---|---|
+| `python -m pytest -q -p no:cacheprovider -m "not live and not integration" tests/test_context_budget_core.py test/offline/test_context_budget.py` | 73 核心用例通过；团队预算占位 1 失败 |
+| `python -m pytest -q -p no:cacheprovider -m "not live and not integration" tests/test_budget_agent_integration.py` | 18 通过 |
+| `python -m pytest -q -p no:cacheprovider -m "not live and not integration" test/offline tests` | 1932 通过、2 失败、1 跳过、1 未选中；100 个子测试通过 |
+| 复用团队 Guarded Graph 与 SDK Mock HTTP 的只读联合探针 | 21 次经预算计数的 Mock 请求、10 个通过 schema 校验的辩论轮次；Guardrail 放行，追溯成立 |
+
+两项失败是 `test_context_within_budget` 与 `test_terminates_on_repeat`
+的 `NotImplementedError` 占位。未将其记为通过。原预算测试和断言保留。
+SDK Mock 证明本地预算、请求一致性、重计数和 HTTP 前阻断；成对样本证明
+所测输入事实和固定约束的保留。真实 CityU API、供应商实际 Token 数和实际模型输出
+faithfulness 未在合版工作区验收。正式 ADR 的批准人、日期与验收口径是否签核仍待确认。

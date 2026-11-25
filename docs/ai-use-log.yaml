@@ -206,3 +206,36 @@ entries:
       keeps the remaining pinned files auditable; pythonpath and the explicit
       feature-c trigger make the CI gate run the same 429 offline tests as the
       local vendor layout.
+  - id: "009"
+    date: "2026-11-25"
+    session_ref: "docs/req-context-budget-acceptance.md"
+    actor: "zxsgdmn (name and student ID pending personal confirmation)"
+    change: >
+      Codex assisted the TradingAgents 0.7.1 migration and SDK Mock HTTP
+      validation of REQ-CONTEXT-BUDGET, all-agent integration, CityU local
+      estimate labeling, and the documentation/traceability update. OpenCode
+      was used in the earlier pilot; the old working-tree development log
+      records that tool, and the raw pilot session is not attached here. The
+      Git implementation references are f20c6c9e76ff3cd30d3e410c30c07dedad4aed49
+      (budget core), 3313ad0fed6e2a97ef52068733e4c68edb50deb5 (agent wiring),
+      and 7de8935684c769515e50fa81690252620d091c80 (CityU local estimate and final delivery).
+    artifacts_touched:
+      - "docs/req/requirements.yaml"
+      - "docs/architecture/adr/001-context-budgeting.md"
+      - "docs/architecture/trace-matrix.md"
+      - "docs/code-governance/verification-constraints.md"
+      - "docs/ai-use-log.yaml"
+      - "docs/req-context-budget-acceptance.md"
+    human_oversight: >
+      In the visible session the user approved the Phase 2 save after review,
+      requested the local-estimate scope and docstring clarification, then
+      authorized the eight-file final implementation commit and feature-z push.
+      For this documentation round the user requested a review hold before
+      commit or push. The ADR approver and approval date are pending; the
+      session record does not establish a formal ADR sign-off.
+    rationale: >
+      Preserve the existing implementation and disclose the count unit and
+      verification boundary. On merged dev a8597af236bbedaa862d7a3a3c1a7d0d2a9984ae
+      the isolated runs recorded 73 core passes and 18 Agent integration passes.
+      Two team placeholders failed the combined offline suite. No real CityU
+      call or model-quality evaluation was used for those results.
