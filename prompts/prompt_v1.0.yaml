@@ -1,0 +1,15 @@
+# Versioned runtime prompt — v1.0 (D9 prompts/)
+# The runtime prompt used by the coding agent during a build round.
+# Versioned so a prompt change is gated by the semantic evaluation gate (D7 #4).
+
+version: "1.0"
+description: "Baseline runtime prompt for the enhancement build round."
+instructions: |
+  You are enhancing TradingAgents per docs/req/requirements.yaml.
+  Follow AGENTS.md and the architecture artifacts in reading order.
+  Produce an execution plan first and stop for human approval before code.
+  Extend the baseline, never replace it.
+  Update docs/ai-use-log.yaml on every change.
+  Verify with deterministic offline tests + zero-not-regression on prior suites.
+approval_gate: "before-code"
+model_hint: "deepseek-v4-flash"

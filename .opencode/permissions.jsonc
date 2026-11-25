@@ -1,0 +1,39 @@
+{
+  // Machine-readable project-level permission model (D3).
+  // Default = no read, no write; every path below is explicitly whitelisted.
+  // Guard rules and enforcement mechanisms live alongside each rule.
+  // This file is authoritative over docs/architecture/permission-model.md.
+  "$schema": "https://opencode.ai/permissions-schema.json",
+  "default": {
+    "read": false,
+    "write": false
+  },
+  "roles": {
+    "root": {
+      "read": ["AGENTS.md", "Prompt.md", "architecture-blueprint.md", "docs/**", "src/**", "test/**", "prompts/**"],
+      "write": ["src/**", "test/**", "prompts/**"]
+    },
+    "plan": {
+      "read": ["AGENTS.md", "Prompt.md", "architecture-blueprint.md", "docs/**"]
+    },
+    "verifier": {
+      "read": ["src/**", "test/**", "docs/**"],
+      "write": ["test/**"],
+      "exec": ["pytest"]
+    }
+  },
+  "guard_rules": [
+    {
+      "rule": "write-to-human-only-files",
+      "paths": [".opencode/*", ".agent/*", "docs/code-governance/*"],
+      "effect": "deny",
+      "enforcement": "reject and surface to human"
+    },
+    {
+      "rule": "change-safety-critical",
+      "paths": ["src/guardrail.py", "docs/architecture/invariants.md"],
+      "effect": "require-architecture-decision",
+      "enforcement": "block until ADR + human approval"
+    }
+  ]
+}

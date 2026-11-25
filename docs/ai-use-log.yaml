@@ -1,0 +1,172 @@
+# AI-Use Log (D1 / D7 #6)
+# Mandatory and must be up to date at submission.
+# A PR that changes code or prompts WITHOUT updating this log is blocked by CI.
+# Append a row per agent-assisted change.
+
+version: "1"
+entries:
+  - id: "001"
+    date: "2026-11-24"
+    session_ref: "transcripts/60760270-CUIHaoyu-01-requirements-classification.md"
+    actor: "CUI Haoyu"
+    change: >
+      Audited docs/req/requirements.yaml: classified the five requirements,
+      checked fit-criterion machine-checkability and type coverage, and pinned
+      the guardrail/traceability acceptance conditions. No files were modified.
+    artifacts_touched: []
+    human_oversight: >
+      Accepted the classification audit; rejected registry edits and type
+      relabels as out of sprint scope; resolved C4/A4; deferred ADR-004 to the
+      architecture session.
+    rationale: >
+      The registry is shared with other requirement owners; editing it
+      mid-sprint would invalidate their trace matrix, and the root agent is
+      read-only on docs/req.
+  - id: "002"
+    date: "2026-11-24"
+    session_ref: "transcripts/60760270-CUIHaoyu-02-architecture-evaluation.md"
+    actor: "CUI Haoyu"
+    change: >
+      Generated and scored guardrail candidates G-A..G-E and trace-recorder
+      candidates T-A..T-E, recommended G-A/T-A, and proposed the ADR-003/004
+      text and frozen interfaces. No files were modified.
+    artifacts_touched: []
+    human_oversight: >
+      Rejected the weighted scoring for arithmetic errors (weights summed to
+      1.10); required normalized recomputation; approved G-A/T-A; signed
+      ADR-003/004; withdrew a docs write from build scope.
+    rationale: >
+      The evaluation must be arithmetically reproducible, and the
+      safety-critical path requires an ADR plus human sign-off.
+  - id: "003"
+    date: "2026-11-24"
+    session_ref: "transcripts/60760270-CUIHaoyu-03-plan-approval-and-guardrail-build.md"
+    actor: "CUI Haoyu"
+    change: >
+      Produced the execution plan; wrote the guardrail and traceability test
+      files first; implemented src/guardrail.py after the red-state gate; and
+      corrected the non-string-rating test conflict under Option A.
+    artifacts_touched:
+      - "src/guardrail.py"
+      - "test/offline/test_guardrail.py"
+      - "test/offline/test_traceability.py"
+    human_oversight: >
+      Rejected the wrong regression baseline; approved only test-first
+      Stages 0-1; authorized Stage 2 after reviewing the red state; ruled
+      Option A (non-string ratings are MALFORMED_DECISION).
+    rationale: >
+      Plan-before-code and test-before-implementation are the course's
+      supervised-pipeline gates; the guardrail is safety-critical.
+  - id: "004"
+    date: "2026-11-24"
+    session_ref: "transcripts/60760270-CUIHaoyu-04-trace-recorder-build.md"
+    actor: "CUI Haoyu"
+    change: >
+      Implemented src/trace_recorder.py against the approved test contract;
+      added to_dict to DataSnapshot/TraceLink; no tests were edited.
+    artifacts_touched:
+      - "src/trace_recorder.py"
+    human_oversight: >
+      Authorized only the recorder; approved the to_dict extension; flagged
+      the record_final_decision return-type drift for verification.
+    rationale: >
+      The tests were the frozen acceptance contract; a single-component build
+      keeps failures attributable.
+  - id: "005"
+    date: "2026-11-24"
+    session_ref: "transcripts/60760270-CUIHaoyu-05-verification-revision.md"
+    actor: "CUI Haoyu"
+    change: >
+      Ran adversarial verification; found and fixed a fail-open in the
+      guardrail short limit (zero cash times an infinite multiplier produced
+      NaN, letting any short pass); added 69 tests; proposed ADR-004/003
+      revisions.
+    artifacts_touched:
+      - "src/guardrail.py"
+      - "test/offline/test_guardrail.py"
+      - "test/offline/test_traceability.py"
+    human_oversight: >
+      Accepted the ADR-004/003 revisions after verifying the red-to-green
+      evidence and mutation check; independently reran the final gate.
+    rationale: >
+      The revision is evidence-driven: the failing test reproduces a real
+      invariant breach at the pinned R8 boundary.
+  - id: "006"
+    date: "2026-11-25"
+    session_ref: "transcripts/60760270-CUIHaoyu-06-baseline-integration.md"
+    actor: "CUI Haoyu"
+    change: >
+      Integrated the pinned TradingAgents 0.7.x Python baseline
+      (commit 9fa1196fffbcfd9de5146d2dd2869df84ab99838, tree
+      21197e6c24b0d5fa01076530a3f0c37863b5c555) as an unmodified reference in
+      vendor/tradingagents-0.7.x, fetched from the codeload SHA tarball after
+      git clone failed with an SSL early-EOF. Created a project-local
+      CPython 3.12.13 venv with the baseline installed editable plus
+      requirements.txt, froze requirements.lock.txt, and added
+      scripts/verify_baseline.py, scripts/verify_schema.py,
+      scripts/diff_junit.py and .gitignore. No src/ or test/ code was changed.
+    artifacts_touched:
+      - "vendor/tradingagents-0.7.x/**"
+      - "vendor/.baseline/**"
+      - "requirements.txt"
+      - "requirements.lock.txt"
+      - "scripts/verify_baseline.py"
+      - "scripts/verify_schema.py"
+      - "scripts/diff_junit.py"
+      - ".gitignore"
+      - "README.md"
+    human_oversight: >
+      Approved the baseline plan and granted write access to vendor/, .venv/,
+      scripts/, artifacts/, requirements.lock.txt and .gitignore, plus the
+      narrow requirements.txt and README section 3 edits; required a B0
+      baseline first and a stop after B5; rejected a git-status-based
+      integrity check after the agent showed it missed an appended line;
+      ruled the LF-normalised vendored tree acceptable as the pinned content.
+    rationale: >
+      Integration must be reproducible and auditable before enhancement work
+      starts, and a pinned, never-edited baseline keeps "extend, never replace"
+      verifiable. Verification results: upstream 1407 passed / 6 environmental
+      skips, our 184 offline passed, schema-gate PASS, uv pip check compatible,
+      and the 3 known stubs unchanged.
+  - id: "007"
+    date: "2026-11-25"
+    session_ref: "transcripts/60760270-CUIHaoyu-07-module-integration.md"
+    actor: "CUI Haoyu"
+    change: >
+      Integrated Guardrail and TraceRecorder into the pinned TradingAgents
+      0.7.x pipeline through src/integration: an explicit execution-intent
+      adapter, a fail-closed gate at TradingAgentsGraph.record_decision,
+      run-level evidence capture at five data seams, a guarded CLI entry
+      point that patches cli.run.TradingAgentsGraph, sidecar attestation,
+      and 245 new offline tests including a full scripted end-to-end graph
+      run on both propagate() and the CLI streaming path.
+    artifacts_touched:
+      - "src/integration/**"
+      - "test/offline/test_integration_*.py"
+      - "docs/architecture/adr/006-guardrail-trace-integration.md"
+      - "docs/architecture/trace-matrix.md"
+      - "docs/code-governance/structural-constraints.md"
+      - "docs/ai-use-log.yaml"
+      - "transcripts/60760270-CUIHaoyu-07-module-integration.md"
+      - "transcripts/README.md"
+      - "README.md"
+      - ".github/workflows/ci.yml"
+    human_oversight: >
+      Rejected current-book sizing (C) because it measures the existing book,
+      not the proposed decision, and lets a new oversized Buy pass at
+      size_pct=0; rejected rating-only NOT_EVALUATED as fail-open; required an
+      explicit execution intent with every missing input rejected as
+      MALFORMED_DECISION. Rejected per-analyst runtime trace attribution as
+      unreliable under parallel analysts; required a run-level evidence set.
+      Found and required fixes for a capture double-install leak, a silently
+      dropped observation, a too-broad no-data marker that would relabel real
+      reports, and a non-total trace catcher. Required a full scripted
+      end-to-end run and a clean-tree strict baseline check; independently
+      reran every gate.
+    rationale: >
+      The baseline has no numeric proposed size or current price, so the only
+      honest gate input is the order the caller will execute: the AI rating is
+      gated, the execution intent is declared, and a missing declaration is
+      Hold. Run-level trace links are coarse but honest where runtime
+      attribution is not; the ADR records the boundary and its reopen
+      conditions. The vendor tree stays byte-identical at 213/213.

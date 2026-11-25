@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cityu.edu.hk/cs5351/req-schema.json",
+  "title": "CS5351 Requirements Registry Schema",
+  "description": "JSON Schema used by CI to validate the machine-readable requirements registry (docs/req/requirements.yaml coerced to JSON).",
+  "type": "object",
+  "required": ["version", "project", "description", "requirements"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Version string of the registry."
+    },
+    "project": {
+      "type": "string",
+      "description": "Short identifier of the target project."
+    },
+    "description": {
+      "type": "string",
+      "description": "One-paragraph narrative describing the enhancement scope."
+    },
+    "requirements": {
+      "type": "array",
+      "description": "The list of requirement entries.",
+      "items": {
+        "$ref": "#/$defs/requirement"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "registry_notes": {
+      "type": "object",
+      "description": "Optional registry-level metadata (e.g. which requirement anchors traceability or the safety boundary).",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "requirement": {
+      "type": "object",
+      "description": "A single requirement entry. Every requirement has an ID, a type, a statement, a machine-checkable fit criterion, and a priority.",
+      "required": [
+        "id",
+        "type",
+        "title",
+        "statement",
+        "fit_criterion",
+        "priority",
+        "tradeoff",
+        "source",
+        "fit_criterion_machine_checkable"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9-]+$",
+          "description": "Unique, machine-parseable requirement ID, e.g. REQ-CONTEXT-BUDGET."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "functional",
+            "invariant",
+            "quality",
+            "performance",
+            "cost",
+            "governance",
+            "security"
+          ],
+          "description": "Requirement type per D1."
+        },
+        "title": {
+          "type": "string",
+          "description": "Short human-readable title."
+        },
+        "statement": {
+          "type": "string",
+          "description": "The requirement statement."
+        },
+        "fit_criterion": {
+          "type": "string",
+          "description": "A machine-checkable fit criterion, typically expressed as METRIC + THRESHOLD + VERIFY or as an invariant with zero tolerance."
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["Must", "Should", "Could", "Wont"],
+          "description": "MoSCoW priority."
+        },
+        "tradeoff": {
+          "type": "string",
+          "description": "Explicit statement of the tradeoff accepted when assigning the priority."
+        },
+        "source": {
+          "type": "string",
+          "description": "Where the requirement came from (e.g. analysis of the existing system, instructor notes)."
+        },
+        "fit_criterion_machine_checkable": {
+          "type": "boolean",
+          "description": "Whether the fit criterion is machine-checkable."
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

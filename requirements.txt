@@ -1,3 +1,35 @@
-# The dependencies are declared in pyproject.toml. From the repository root this
-# installs TradingAgents with them, the same as `pip install .`
-.
+# CS5351 team-app dependencies.
+# The upstream TradingAgents baseline deps (see its pyproject.toml) plus our
+# test/verification tools. Update as the implementation lands.
+langchain-core>=1.6.5
+langchain-anthropic>=1.7.4
+langchain-google-genai>=4.4.0
+langchain-openai>=1.6.6
+langgraph>=1.2.12
+langgraph-checkpoint-sqlite>=3.1.1
+pandas>=3.0.6
+python-dotenv>=1.0.0
+pytz>=2025.2
+questionary>=2.1.0
+requests>=2.32.4
+rich>=14.0.0
+typer>=0.21.0
+stockstats>=0.6.5
+yfinance>=1.7.0
+
+# runtime, transitive via the upstream TradingAgents 0.7.x pyproject.toml.
+# Listed explicitly so our flattened list is complete against the baseline.
+cryptography>=42.0
+markdown-it-py>=4.0
+packaging>=24.0
+typing-extensions>=4.14.0
+
+# dev / test
+pytest>=8.0
+pytest-subtests>=0.13
+ruff>=0.16
+pyyaml>=6.0
+jsonschema>=4.23
+
+# NOTE: deepeval is heavy; install for the live prose-eval phase only.
+# deepeval>=0.0   # uncomment for phase 5
