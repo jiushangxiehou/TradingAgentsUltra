@@ -1,0 +1,68 @@
+Pinned baseline: TradingAgents 0.7.x
+====================================
+
+Repository : https://github.com/TauricResearch/TradingAgents
+Branch     : 0.7.x (Python research baseline; NOT the TypeScript `main` branch)
+Commit     : 9fa1196fffbcfd9de5146d2dd2869df84ab99838
+Commit msg : "announce Trading-R1 official release"
+Commit date: 2026-11-04T10:13:55Z (GitHub-verified signature)
+Tree SHA-1 : 21197e6c24b0d5fa01076530a3f0c37863b5c555
+Version    : tradingagents.__version__ == "0.7.1"
+Fetched    : 2026-11-25 (UTC+8 host)
+
+Method (planned order, actual outcome)
+--------------------------------------
+1. `git clone --branch 0.7.x --depth 1` -> FAILED
+   error: RPC failed; curl 56 OpenSSL SSL_read: SSL_ERROR_SYSCALL, errno 0
+   fetch-pack: unexpected disconnect while reading sideband packet
+   fatal: early EOF
+   (same failure as the earlier attempt recorded in the plan)
+2. codeload tarball pinned by SHA -> SUCCEEDED
+   https://codeload.github.com/TauricResearch/TradingAgents/tar.gz/9fa1196fffbcfd9de5146d2dd2869df84ab99838
+   sha256(ta.tar.gz) = a3d15b80151b77a85b08377e6980f9b57aae840188c8d329806cb381a1edbeb8
+   Archive root     = TradingAgents-9fa1196fffbcfd9de5146d2dd2869df84ab99838
+3. Independent second source for cross-check: `git clone --depth 1 --single-branch
+   --no-checkout -c http.version=HTTP/1.1` -> SUCCEEDED (HTTP/2 was the trigger).
+
+Verification performed
+----------------------
+- Commit object  : `git rev-parse HEAD` == 9fa1196fffbcfd9de5146d2dd2869df84ab99838
+- Tree object    : `git rev-parse HEAD^{tree}` == 21197e6c24b0d5fa01076530a3f0c37863b5c555
+                   (git's own SHA-1, i.e. computed by git, not reimplemented)
+                   Independent confirmation: the tarball extraction yields the
+                   same 213 files, and `git checkout` of the pinned commit in a
+                   separate clone reproduces the same tree object.
+- File set       : 213 blobs, matches the GitHub API recursive tree exactly
+                   (missing: none, extra: none)
+- Content        : every vendored file folded CRLF->LF hashes to its pinned
+                   blob; re-checkable at any time with
+                   `python scripts/verify_baseline.py --strict`
+                   (verified: PASS, 213/213, 0 missing, 0 altered, 0 unexpected)
+- Modes          : all files 100644 (no executables, no symlinks)
+- Per-file hashes: BASELINE_MANIFEST.txt (SHA-256, raw bytes)
+
+Corrections to an earlier draft of this record (kept for auditability)
+---------------------------------------------------------------------
+1. A hand-rolled tree-hash rebuild produced 2571689c... and, when fed the API's
+   own modes, 48a321dd... . Both were faults in the ad-hoc script (it fed
+   directory entries into the entry list and re-sorted after building tuples).
+   The authoritative check is git's own tree SHA above.
+2. An earlier claim that "all 213 blobs were byte-identical across both
+   sources" was checked against a clone that had been created with
+   `--no-checkout` (empty working tree), so the comparison was vacuous.
+3. Line endings differ by source and this matters for verification:
+   the git checkout writes CRLF (host `core.autocrlf=true`), the tarball keeps
+   LF. Therefore `git status` is NOT a valid tamper check on this host: it
+   normalises CRLF and missed an appended blank line. `verify_baseline.py`
+   fingerprints content with CRLF folded to LF, which catches appended lines,
+   altered bytes and extra files, and tolerates a pure line-ending flip.
+   That behaviour was tested (append -> FAIL, extra file -> FAIL, CRLF flip -> PASS).
+4. The vendored tree is LF-normalised (tarball source). This is the pinned
+   upstream content; only the line-ending form differs from a Windows git
+   checkout, and imports/tests are unaffected (upstream suite: 1407 passed).
+
+Policy
+------
+This tree is a pinned, unmodified reference. Do NOT edit anything under
+vendor/tradingagents-0.7.x/. All project enhancement work lives in src/ and
+test/. The only permitted additions are this file and BASELINE_MANIFEST.txt.
