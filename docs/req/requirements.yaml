@@ -1,0 +1,223 @@
+# CS5351 Agentic Software Engineering Project
+# Machine-Readable Product Requirements (PRD)
+# Target system: enhanced `tradingagents` (https://github.com/tauricresearch/tradingagents)
+#
+# Conventions (D1 spec):
+#   - Every requirement has: id, type, statement, a machine-checkable fit_criterion, priority.
+#   - Types: functional / invariant (zero-tolerance) / quality / performance / cost / governance / security.
+#   - Non-functional requirements expressed as metric + threshold + verification.
+#   - Priority uses MoSCoW (Must / Should / Could / Won't) with an explicit tradeoff statement.
+#   - Requirements discovered by analysing the existing system are included and linked to sources.
+
+version: "1.0"
+project: "tradingagents-enhancement"
+description: >
+  A set of enhancement requirements for the TradingAgents multi-agent LLM
+  financial trading framework, focused on reducing token consumption,
+  structuring the free-form agent debate, strengthening evidence
+  traceability, enforcing a deterministic safety boundary, and adding
+  termination discipline.
+
+# -----------------------------------------------------------------------------
+# Requirement types
+# -----------------------------------------------------------------------------
+# functional            : observable behaviour of the application
+# invariant             : non-negotiable rule with zero-tolerance fit criterion
+# quality               : quality attribute (e.g. usability, maintainability)
+# performance           : latency / throughput / efficiency targets
+# cost                  : resource consumption (token, wall-clock) budgets
+# governance            : rules that govern the agents / process
+# security              : safety / access-control boundaries
+
+requirements:
+  # ===========================================================================
+  # 1. REQ-CONTEXT-BUDGET — context budget and compaction (cost / performance)
+  # ===========================================================================
+  - id: REQ-CONTEXT-BUDGET
+    type: performance            # resource/context efficiency
+    title: "Per-agent context budget with compaction"
+    statement: >
+      Every agent invocation that assembles context must enforce a per-run
+      token budget. When the assembled context exceeds a configurable
+      compaction threshold, the context must be compressed (deduplicate →
+      prioritise → budget → compact) before injection into the model, so the
+      agent is not re-fed an ever-growing, unbounded history.
+    fit_criterion: >
+      METRIC: context_tokens_injected_per_call;
+      THRESHOLD: <= CONTEXT_BUDGET (default 8000);
+      VERIFY: instrument the context-assembly pipeline to measure tokens per
+      call; assert the injected context never exceeds the budget. On compaction
+      (observed when raw context > COMPACTION_THRESHOLD default 6000), assert
+      that critical invariants and standing constraints survive re-injection
+      (verify via a re-injection test), and that post-compaction output quality
+      (faithfulness score) drops by no more than a configurable acceptability
+      bound (default 0.1).
+    priority: Must               # MoSCoW
+    tradeoff: >
+      Compaction trades fidelity for token savings. The explicit tradeoff is
+      stated: a lower budget reduces cost but risks losing detail, so the
+      threshold and the quality-acceptability bound are jointly tuned; a
+      quality evaluation gate (see D7 semantic gate) guards against an
+      unacceptable quality drop.
+    source: >
+      Analysed from existing system: default_config.py sets max_tool_rounds=20
+      and agents re-resend full research reports plus entire debate history on
+      every invocation (bull_researcher.py builds the prompt with
+      "{market_research_report} ... {history}"), with no truncation/budget.
+    fit_criterion_machine_checkable: true
+
+  # ===========================================================================
+  # 2. REQ-STRUCTURED-DEBATE — structured, eliminative debate (quality)
+  # ===========================================================================
+  - id: REQ-STRUCTURED-DEBATE
+    type: quality                # structure / discipline of agent debate
+    title: "Structured (Osborn-style) eliminative debate"
+    statement: >
+      The bull / bear research debate must produce structured, per-round,
+      schema-validated turns instead of free-form prose. Each turn exposes
+      four mandatory fields: claim → evidence_reference → counter_argument →
+      round_conclusion. The debate is additionally permitted to terminate early
+      when the agents' positions converge to within a configurable divergence
+      threshold, rather than only after a fixed round count.
+    fit_criterion: >
+      METRIC: debate_turn_schema_validation_pass_rate;
+      THRESHOLD: == 100%;
+      VERIFY: each bull/bear turn is validated against the defined JSON schema
+      (claims/evidence_reference/counter_argument/round_conclusion) — schema
+      validation pass rate must be 100%. Also assert early termination works:
+      when |bull_position - bear_position| <= DIVERGENCE_THRESHOLD, the debate
+      stops on a configurable convergence condition rather than always running
+      max_debate_rounds.
+    priority: Should
+    tradeoff: >
+      Structured fields constrain conversational flexibility. The explicit
+      tradeoff: the evidence_reference field is retained to preserve information
+      density while the free-form "debating effectively" instruction is
+      replaced by the structured template. Convergence-based early termination
+      may end a debate sooner than the fixed round cap, so a minimum-rounds
+      guard (default 1) avoids a premature stop.
+    source: >
+      Analysed from existing system: bull_researcher.py prompt only says
+      "Build a strong evidence-based case ... debating effectively" with no
+      structured template; conditional_logic.py switches speakers only by a
+      turn counter (count >= 2 * max_debate_rounds) with no content-based stop.
+    fit_criterion_machine_checkable: true
+
+  # ===========================================================================
+  # 3. REQ-TRACEABILITY — evidence-chain traceability (functional)
+  # ===========================================================================
+  - id: REQ-TRACEABILITY
+    type: functional
+    title: "Evidence-chain traceability for agent assertions"
+    statement: >
+      Every critical assertion made by an agent must be recorded as a
+      traceable link: assertion_id → referenced_data_snapshot_id → data_source
+      + fetch_timestamp. The final investment decision must be re-traceable down
+      to each piece of referenced evidence, so the decision can be audited
+      against its sources. Non-critical assertions are recorded optionally to
+      bound storage overhead.
+    fit_criterion: >
+      METRIC: final_decision_traceable_to_evidence;
+      THRESHOLD: == True for 100% of final decisions, and per-critical-assertion
+      field completeness == 100%;
+      VERIFY: a re-traceability auditor walks the final decision's trace links
+      and asserts every link resolves to at least one recorded evidence
+      snapshot with a source and timestamp; a renderable trace table is
+      produced from the links.
+    priority: Must
+    tradeoff: >
+      Recording every link adds storage and structural complexity. The explicit
+      tradeoff: critical assertions are always recorded (to guarantee
+      auditability), non-critical ones are optional, so the cost is bounded
+      while forensic traceability is preserved.
+    source: >
+      Analysed from existing system: record_decision() in trading_graph.py
+      writes only the final_trade_decision plus report text to the memory log;
+      there is no chain linking a claim to the data snapshot it cited.
+    fit_criterion_machine_checkable: true
+
+  # ===========================================================================
+  # 4. REQ-HARD-GUARDRAIL — deterministic safety boundary (invariant / security)
+  # ===========================================================================
+  - id: REQ-HARD-GUARDRAIL
+    type: invariant              # zero-tolerance safety boundary
+    title: "Deterministic decision guardrail (safety-relevant boundary)"
+    statement: >
+      A deterministic guardrail component must perform a hard, signed
+      final check on the AI-produced trade decision before it reaches the
+      execution path. The guardrail must reject (with a documented fallback
+      action) any decision that: (a) sizes a single position above a
+      configurable value — default 10% of portfolio value; (b) seeks to sell
+      short more than the available cash; or (c) emits a rating outside the
+      legal 5-tier set (Buy / Overweight / Hold / Underweight / Sell), in which
+      case it falls back to REVIEW/HOLD. The AI cannot bypass any of these
+      limits.
+    fit_criterion: >
+      METRIC: adversarial_escapes_past_guardrail;
+      THRESHOLD: == 0 (zero-tolerance);
+      VERIFY: a structured test suite attempts boundary crossings (single
+      position > 10%, short > cash, illegal rating) and asserts zero escapes —
+      every crossing is intercepted, logged, and routed to its documented
+      fallback. These are OFFLINE deterministic tests (no API needed) and must
+      pass in CI.
+    priority: Must
+    tradeoff: >
+      A conservative guardrail may reject a legitimate aggressive decision. The
+      explicit tradeoff: guardrail limits are configurable, and the rejection
+      path always has an explicit fallback (REVIEW/HOLD) plus a logged audit
+      record, so safety is not achieved by silently dropping decisions.
+    source: >
+      Analysed from existing system: the final_trade_decision (a rating) is
+      produced by AI with no deterministic post-check in trading_graph.py /
+      agents/trader; trading agents is a financial-decision domain, making it
+      a natural safety boundary where AI output must be constrained by
+      deterministic code.
+    fit_criterion_machine_checkable: true
+
+  # ===========================================================================
+  # 5. REQ-TERMINATION-DISCIPLINE — self-termination (performance / reliability)
+  # ===========================================================================
+  - id: REQ-TERMINATION-DISCIPLINE
+    type: performance
+    title: "Self-termination discipline for agent loops"
+    statement: >
+      Each agent loop that iterates (debate turns, tool-call rounds) must be
+      able to stop itself. It must detect repeated / stale debate positions
+      (consecutive repeats >= REPEAT_THRESHOLD), stalled progress, or budget
+      exhaustion, and terminate the loop with a logged reason. Hard cap: a
+      buggy / non-converging debate is bounded by a maximum number of rounds
+      before forced termination.
+    fit_criterion: >
+      METRIC: loop_terminates_on_stall_repeat_budget;
+      THRESHOLD: == True (with a logged reason on every forced termination);
+      VERIFY: an offline deterministic test drives a synthetic stalled/repeating
+      debate and asserts the loop terminates once consecutive repeats >=
+      REPEAT_THRESHOLD (default 3) or the budget is exhausted; every forced
+      termination writes a logger record naming the trigger. No hard cap
+      exceeds the configurable max tool rounds.
+    priority: Should
+    tradeoff: >
+      Aggressive termination may cut off a debate that would have converged.
+      The explicit tradeoff: REPEAT_THRESHOLD (default 3) and max-tool-rounds
+      are configurable and calibrated, and termination always writes an audit
+      trail (trigger reason) so a premature stop is distinguishable from a
+      deadlocked one.
+    source: >
+      Analysed from existing system: conditional_logic.py terminates only on a
+      turn counter with no stall/repeat/budget detection; bull_researcher.py
+      has no repeated-argument detector, so a model can regenerate near-identical
+      positions and burn tokens (mirrors the VHIS "terminate after 10 attempts"
+      discipline).
+    fit_criterion_machine_checkable: true
+
+# -----------------------------------------------------------------------------
+# Registry-level metadata
+# -----------------------------------------------------------------------------
+registry_notes:
+  traceability_requirement: REQ-TRACEABILITY
+  safety_boundary_requirement: REQ-HARD-GUARDRAIL
+  token_efficiency_requirements: [REQ-CONTEXT-BUDGET, REQ-STRUCTURED-DEBATE, REQ-TERMINATION-DISCIPLINE]
+  moscow_tradeoff: >
+    Each requirement's `tradeoff` field states the explicit tradeoff the team
+    accepted when assigning its MoSCoW priority. Non-functional requirements
+    are expressed as metric + threshold + verification in their `fit_criterion`.

@@ -221,3 +221,24 @@ __marimo__/
 # Enterprise env file (secrets) and generated run reports
 .env.enterprise
 reports/
+
+
+# --- CS5351 team-app additions ---
+# Local-only environment and build artifacts. The submission must not include .venv/.
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+artifacts/
+
+# Baseline fetch archives (the extracted tree is kept; the archive is not)
+vendor/.baseline/ta.tar.gz
+*.tar.gz
+*.zip
+
+# Secrets
+.env
+.env.enterprise
+
+# D5 session transcripts stay local; they are not published to the remote.
+transcripts/

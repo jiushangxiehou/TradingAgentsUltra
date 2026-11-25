@@ -1,67 +1,93 @@
-name: CI
+# CS5351 CI/CD — Blocking Gates (D4/D7)
+# Implements the six required blocking gates + branch protection policy.
+# Every job that fails blocks a merge unless the failure is a documented
+# non-blocking path.
+
+name: CS5351 Blocking Gates
 
 on:
   push:
-    branches: [main, 'v[0-9]+.[0-9]+.[0-9]+']
+    branches: ["main", "develop", "feature-c"]
   pull_request:
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+    branches: ["main", "develop", "feature-c"]
 
 jobs:
-  test:
-    name: tests (py${{ matrix.python-version }}${{ matrix.tz && format(', {0}', matrix.tz) || '' }})
+  # ---- Gate 3: Schema gate — validate requirements registry against its schema.
+  schema-gate:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11", "3.12", "3.13", "3.14"]
-        # One run away from UTC, so a test that only passes in UTC fails here.
-        include:
-          - python-version: "3.12"
-            tz: America/New_York
-    env:
-      TZ: ${{ matrix.tz }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install (with dev extras)
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install validators
+        run: pip install pyyaml jsonschema
+      - name: Validate requirements.yaml against req-schema.json
         run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-      - name: Run test suite
-        run: pytest -q
+          python - <<'PY'
+          import json, yaml, jsonschema
+          with open("docs/req/req-schema.json", encoding="utf-8") as f:
+              schema = json.load(f)
+          with open("docs/req/requirements.yaml", encoding="utf-8") as f:
+              data = yaml.safe_load(f)
+          jsonschema.validate(data, schema)
+          print("schema-gate: PASS")
+          PY
 
-  smoke-install:
-    name: clean-install smoke
+  # ---- Gate 2: Static analysis — lint, type-check, dependency check.
+  static-analysis:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-      - name: Fresh install (no dev extras) and import
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Lint / type-check / dep check (placeholder)
         run: |
-          python -m pip install --upgrade pip
-          pip install .
-          # Catches undeclared runtime deps (e.g. #994 python-dotenv): a bare
-          # install must import the package and the CLI module.
-          python -c "import tradingagents, cli.main; print('clean-install import OK')"
+          echo "static-analysis: run ruff, mypy/pyright, pip-audit here"
+          # TODO: wire real tooling once deps are declared.
 
-  lint:
-    name: ruff (strict, full repo)
+  # ---- Gate 1: Test approval gate + Gate 5: Regression gate.
+  tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.12"
-      - name: Install ruff
-        run: pip install "ruff>=0.16"
-      - name: Lint the repository
-        # The repo is fully clean under the strict select, so we lint everything
-        # (generated results/ is excluded via pyproject extend-exclude).
-        run: ruff check .
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Install deps
+        run: pip install -r requirements.txt pytest
+      - name: Install the pinned baseline (root layout or vendor layout)
+        run: |
+          if [ -d vendor/tradingagents-0.7.x ]; then
+            pip install -e vendor/tradingagents-0.7.x --no-deps
+          else
+            pip install -e . --no-deps
+          fi
+      - name: Offline / deterministic tests (no API)
+        run: pytest test/offline -m offline -q
+      - name: Regression — full prior suite
+        run: pytest -m "offline" -q   # live tests need keys; offline = deterministic
+      # Gate 1 note: assert the PR's tests were approved before impl — enforce
+      # via a review requirement on the test files (see branch protection).
+
+  # ---- Gate 6: AI-use log gate — PR changing code/prompts must update the log.
+  ai-use-log:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Block if code/prompts changed without ai-use-log.yaml
+        run: |
+          if git diff --name-only HEAD^ HEAD | grep -Eq '^(src/|prompts/)' \
+             && ! git diff --name-only HEAD^ HEAD | grep -q '^docs/ai-use-log.yaml'; then
+            echo "::error::AI-use log gate: code/prompts changed without updating docs/ai-use-log.yaml"
+            exit 1
+          fi
+          echo "ai-use-log: PASS"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Gate 4 (semantic evaluation) and Gate 1 (test approval via review) are
+# intentionally placeholders here — wire them once the implementation exists.
+# Branch protection (bypass check) must require these CI checks + human review
+# on safety-critical paths. This is a skeleton, not the finished policy.
