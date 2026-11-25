@@ -170,3 +170,39 @@ entries:
       Hold. Run-level trace links are coarse but honest where runtime
       attribution is not; the ADR records the boundary and its reopen
       conditions. The vendor tree stays byte-identical at 213/213.
+  - id: "008"
+    date: "2026-11-25"
+    session_ref: "https://github.com/jiushangxiehou/TradingAgentsUltra/commits/feature-c"
+    actor: "CUI Haoyu"
+    change: >
+      Synced the local team-app to the clean root layout used by the new
+      feature-c repository: the pinned TradingAgents 0.7.1 baseline is
+      the repository root, the local vendor/ duplicate was removed, and the
+      baseline verifier now auto-detects vendor-vs-root layout with five
+      declared project-owned overrides. Added pytest pythonpath=., upstream
+      markers, the feature-c CI trigger, and style-only ruff fixes
+      (frozen enum classes keep their str/Enum base with a noqa; tests and
+      integration imports were reformatted).
+    artifacts_touched:
+      - "scripts/verify_baseline.py"
+      - "scripts/baseline/blob-sha-working-tree.txt"
+      - "pytest.ini"
+      - ".github/workflows/ci.yml"
+      - "README.md"
+      - "docs/architecture/adr/006-guardrail-trace-integration.md"
+      - "src/guardrail.py"
+      - "src/trace_recorder.py"
+      - "src/integration/**"
+      - "test/offline/**"
+      - "docs/ai-use-log.yaml"
+    human_oversight: >
+      The student approved the root-overlay feature-c layout and the five
+      declared overrides, required the vendor and root layouts to be verified
+      separately, and approved the style-only noqa/fixes with no semantic
+      change to the frozen guardrail or recorder.
+    rationale: >
+      A single root baseline removes the duplicated vendor tree and makes the
+      feature branch a normal diff against 0.7.1. The dual-layout verifier
+      keeps the remaining pinned files auditable; pythonpath and the explicit
+      feature-c trigger make the CI gate run the same 429 offline tests as the
+      local vendor layout.
