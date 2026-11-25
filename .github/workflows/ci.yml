@@ -40,10 +40,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
-      - name: Lint / type-check / dep check (placeholder)
+      - name: Install analysis dependencies
+        run: pip install -r requirements.txt
+      - name: Lint and dependency check
         run: |
-          echo "static-analysis: run ruff, mypy/pyright, pip-audit here"
-          # TODO: wire real tooling once deps are declared.
+          ruff check src test
+          pip check
+      # Type checker / safety-path contract checks remain a follow-up; the
+      # lint and dependency layers are real blocking checks now.
 
   # ---- Gate 1: Test approval gate + Gate 5: Regression gate.
   tests:

@@ -1,8 +1,8 @@
 # ADR-004: Deterministic Decision Guardrail (Safety Boundary)
 
-- **Status:** Proposed
-- **Decision owner:** (fill in)
-- **Date:** (fill in)
+- **Status:** Accepted
+- **Decision owner:** CUI Haoyu (60760270)
+- **Date:** 2026-11-24
 
 ## Context
 The AI produces the final trade rating with no deterministic post-check; this is
@@ -28,4 +28,17 @@ A measured false-rejection rate is too high → tune limits; guardrail limits ar
 configurable.
 
 ## Architectural design process
-(TODO.)
+
+The driver is the project's zero-escape safety boundary. The iteration compared
+a prompt-only rule (not deterministic), rating-only checking (leaves size
+unchecked), current-book sizing (policy C; a new oversized Buy passes at zero
+position), and an explicit execution intent (selected in ADR-006). The selected
+gate checks the declared `size_pct`, `short_amount`, available cash and legal
+rating; missing or malformed inputs fail closed to `Hold`, and one audit record
+is emitted per rejection. The policy decision deliberately keeps the model's
+prose as corroboration only. The consequence is a conservative gate that can
+reject a legitimate aggressive decision; the reopen condition is a measured
+false-rejection rate, with limits configurable rather than silently bypassed.
+
+> **CUI Haoyu note:** I own this element and implemented it in
+> `src/guardrail.py`; the declared-intent boundary is ADR-006.
