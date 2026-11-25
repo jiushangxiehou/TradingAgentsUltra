@@ -164,7 +164,7 @@ def test_file_is_marked_offline():
 def test_baseline_constants_are_retained():
     """`extend, do not replace`: the pre-existing constants keep their values."""
     assert GUARDRAIL_LIMITS == {"max_position_pct": 0.10, "max_short_pct_of_cash": 1.0}
-    assert VALID_RATINGS == {"Buy", "Overweight", "Hold", "Underweight", "Sell"}
+    assert {"Buy", "Overweight", "Hold", "Underweight", "Sell"} == VALID_RATINGS
     assert isinstance(VALID_RATINGS, (set, frozenset))
     assert FALLBACK_RATING in VALID_RATINGS
     assert AUDIT_ACTION_REVIEW_HOLD == "REVIEW/HOLD"

@@ -47,10 +47,6 @@ from contextvars import ContextVar
 from datetime import UTC, datetime
 from pathlib import Path
 
-from tradingagents.agents.rating import run_rating
-from tradingagents.dataflows.symbols import safe_ticker_component
-from tradingagents.graph.trading_graph import TradingAgentsGraph
-
 from src.guardrail import GuardrailError, GuardrailLimits, evaluate_decision
 from src.integration.decision_adapter import ExecutionIntent, build_decision
 from src.integration.gate_support import (
@@ -60,6 +56,9 @@ from src.integration.gate_support import (
     limits_payload,
 )
 from src.integration.trace_adapter import DataCapture, begin_capture, build_trace
+from tradingagents.agents.rating import run_rating
+from tradingagents.dataflows.symbols import safe_ticker_component
+from tradingagents.graph.trading_graph import TradingAgentsGraph
 
 logger = logging.getLogger(__name__)
 

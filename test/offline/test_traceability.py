@@ -480,7 +480,7 @@ def test_two_instances_produce_identical_records():
     assert _snapshots(first) == _snapshots(second)
     assert _links(first) == _links(second)
     assert [s.to_dict() for s in _snapshots(first)] == [s.to_dict() for s in _snapshots(second)]
-    assert [l.to_dict() for l in _links(first)] == [l.to_dict() for l in _links(second)]
+    assert [link.to_dict() for link in _links(first)] == [link.to_dict() for link in _links(second)]
     assert first.audit().to_dict() == second.audit().to_dict()
     assert first.render_table() == second.render_table()
 
@@ -490,8 +490,8 @@ def test_link_id_is_content_derived():
     first = build_recorder(record_final=False)
     second = build_recorder(record_final=False)
 
-    first_ids = {l.assertion_id: l.link_id for l in _links(first)}
-    second_ids = {l.assertion_id: l.link_id for l in _links(second)}
+    first_ids = {link.assertion_id: link.link_id for link in _links(first)}
+    second_ids = {link.assertion_id: link.link_id for link in _links(second)}
     assert first_ids == second_ids
 
     # A one-field change must move the id (not a constant, not a counter).

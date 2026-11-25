@@ -73,7 +73,7 @@ AUDIT_ACTION_REVIEW_HOLD: Final[str] = "REVIEW/HOLD"
 _NUMBER_TYPES = (int, float)
 
 
-class Trigger(str, Enum):
+class Trigger(str, Enum):  # noqa: UP042 - pinned enum base; StrEnum changes str/format semantics
     """Frozen audit vocabulary. Every rejection names exactly one of these."""
 
     MALFORMED_DECISION = "MALFORMED_DECISION"

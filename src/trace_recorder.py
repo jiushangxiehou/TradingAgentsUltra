@@ -76,7 +76,7 @@ class TraceError(ValueError):
     """A recorder *protocol* fault: a collision, a bad timestamp, bad input."""
 
 
-class FindingReason(str, Enum):
+class FindingReason(str, Enum):  # noqa: UP042 - pinned enum base; StrEnum changes str/format semantics
     """Frozen finding vocabulary. Every audit finding names exactly one."""
 
     DANGLING_SNAPSHOT = "DANGLING_SNAPSHOT"

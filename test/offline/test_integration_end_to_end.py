@@ -36,18 +36,17 @@ from langchain_core.messages import AIMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 from langchain_core.runnables import RunnableLambda
 from pydantic import Field
-from tradingagents.agents import context, schemas
-from tradingagents.agents.analysts import sentiment_analyst
-from tradingagents.dataflows import router
-from tradingagents.dataflows.vendors.yahoo import market as yahoo_market
-from tradingagents.dataflows.vendors.yahoo import snapshot
-from tradingagents.default_config import DEFAULT_CONFIG
-from tradingagents.graph import trading_graph
-from tradingagents.portfolio import PortfolioContext
 
 from src.guardrail import FALLBACK_RATING
 from src.integration.decision_adapter import ExecutionIntent
 from src.integration.governed_graph import EXECUTION_INTENT, GuardedTradingAgentsGraph
+from tradingagents.agents import context, schemas
+from tradingagents.agents.analysts import sentiment_analyst
+from tradingagents.dataflows import router
+from tradingagents.dataflows.vendors.yahoo import market as yahoo_market, snapshot
+from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.graph import trading_graph
+from tradingagents.portfolio import PortfolioContext
 
 pytestmark = pytest.mark.offline
 

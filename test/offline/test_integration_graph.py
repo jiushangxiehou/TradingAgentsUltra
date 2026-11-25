@@ -229,9 +229,7 @@ def test_g3_super_record_decision_runs_before_build_trace(monkeypatch, tmp_path)
 
     def logging_trace(**kwargs):
         order.append("build_trace")
-        return {key: None for key in
-                ("traceable", "checked_links", "resolved_links", "findings", "decision_id",
-                 "snapshot_count", "table", "unbacked_reports", "capture_errors", "trace_error")}
+        return dict.fromkeys(("traceable", "checked_links", "resolved_links", "findings", "decision_id", "snapshot_count", "table", "unbacked_reports", "capture_errors", "trace_error"))
 
     monkeypatch.setattr(governed_graph, "build_trace", logging_trace)
     run_record_decision(monkeypatch, graph, make_state())

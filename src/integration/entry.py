@@ -120,7 +120,6 @@ def run_guarded_cli(argv: list[str] | None = None) -> int:
         # terminal, so it must not happen on a plain ``import src.integration``.
         from cli import run as cli_run
         from cli.main import app as cli_app
-
         from src.integration.governed_graph import GuardedTradingAgentsGraph
 
         with install(cli_run, GuardedTradingAgentsGraph):
