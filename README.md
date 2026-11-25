@@ -7,9 +7,6 @@
 
 ## 1. Purpose and architecture (a few paragraphs)
 
-> TODO: Replace this section with your team's real summary once the design is
-> settled. Keep it to a few paragraphs.
-
 This project enhances the [TradingAgents](https://github.com/tauricresearch/tradingagents)
 multi-agent LLM financial trading framework. The baseline is a LangGraph
 orchestration of specialised LLM agents (market / social / news / fundamentals
@@ -198,6 +195,34 @@ tests are `test/offline/test_integration_end_to_end.py`.
 
 ## 4. The real GitHub project
 
-> TODO: Paste the URL of your actual GitHub repository when it is created.
->
-> Reference upstream: https://github.com/tauricresearch/tradingagents
+- Team repository: https://github.com/jiushangxiehou/TradingAgentsUltra
+- Integration branch: `dev`
+- Project/clean branch: `feature-c`
+- Reference upstream: https://github.com/tauricresearch/tradingagents
+
+The repository holds the pinned 0.7.1 baseline at the root, the project
+additions in `src/`, `test/`, `docs/`, `prompts/` and `transcripts/`, and the
+feature branches used for the structured-debate and context-budget work.
+
+## 5. Blocking-gate design and current status
+
+The CI workflow is `.github/workflows/ci.yml`. The intended six blocking gates
+and their current implementation status are:
+
+| Gate | Design | Current status |
+|---|---|---|
+| 1. Test approval | A PR's tests must be reviewed and approved before implementation; safety-critical paths also require a review and an ADR. | **Pending**: the workflow has a note, but no automated test-approval check yet. |
+| 2. Static analysis | Lint, type check, dependency check and safety-path contract/security checks on every push. | **Partial**: `ruff check src test` and `pip check` are now blocking in CI; type checking and safety-path contract checks remain follow-ups. |
+| 3. Schema | Validate `docs/req/requirements.yaml` against `docs/req/req-schema.json`. | **Implemented** in CI; the schema check passes locally. |
+| 4. Semantic evaluation | Replay a fixed evaluation set on prompt/model changes and block on a failed threshold (faithfulness/relevancy ≥ 0.6). | **Pending**: `test/live/test_live_prose.py` is still a stub and no semantic gate job exists. |
+| 5. Regression | Run the full prior suite on every change; any regression blocks. | **Implemented** for the deterministic offline suite; the dev upstream suite is run locally. |
+| 6. AI-use log | Block a change to `src/` or `prompts/` without an `docs/ai-use-log.yaml` update. | **Implemented**, but currently checks only `HEAD^..HEAD`; widen it to the PR/push diff. |
+
+**Branch protection:** `main`, `dev` and `feature-c` are not yet protected on
+GitHub. The required design is: require the blocking checks above, require a
+human review for safety-critical paths, and require an architecture decision
+for changes to the pinned baseline or the guardrail/trace contracts.
+
+> **CUI Haoyu note:** I implemented the guardrail/trace tests and the
+> `pythonpath=.` / AI-use-log CI repair; the semantic-evaluation and branch
+> protection gaps are recorded here rather than hidden.

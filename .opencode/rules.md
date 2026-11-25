@@ -17,4 +17,13 @@
    regressions) before declaring work done.
 8. Keep module ↔ architectural-element mapping consistent.
 
-(TODO: expand with project-specific rules as they emerge.)
+9. **No bypass of the gate or trace.** Do not edit a verdict, remove a trigger,
+   skip the sidecar or claim a pass without the CLI/test evidence.
+10. **Keep the D4 record current.** A change that affects a requirement, invariant,
+    module boundary or gate updates the review memo, debt register, bug diary or
+    verification map in the same work unit.
+11. **Use the project environment.** Run the project `.venv`, not the global
+    interpreter; never install a dependency silently or commit a key.
+12. **Respect the pinned baseline.** The root layout is deliberate; a baseline
+    edit needs an ADR/override, and `scripts/verify_baseline.py --strict` is a
+    gate, not a suggestion.

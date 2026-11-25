@@ -1,8 +1,8 @@
 # ADR-005: Self-Termination Discipline
 
-- **Status:** Proposed
-- **Decision owner:** (fill in)
-- **Date:** (fill in)
+- **Status:** Proposed (implementation missing)
+- **Decision owner:** unassigned (to confirm)
+- **Date:** 2026-11-25
 
 ## Context
 Agent loops terminate only on a turn counter; no stall / repeat / budget
@@ -25,4 +25,15 @@ exhaustion, always logging the trigger. Hard cap ties to max tool rounds.
 Too many premature terminations → calibrate the threshold.
 
 ## Architectural design process
-(TODO.)
+
+The driver is the baseline loop's turn-count-only termination: a model can repeat
+near-identical positions and burn tokens. Candidates were turn-count only
+(deadlock-prone), no termination (unbounded cost), and a controller with
+repeat/stall/budget triggers (selected in principle). The current tree has only
+the `REPEAT_THRESHOLD` constant and a `test/offline/test_termination.py` stub;
+there is no controller, no trigger log and no passing test. This ADR therefore
+remains **Proposed**, not Accepted. The consequence is a real D8 gap; the
+reopen condition is the implementation review, not a threshold experiment.
+
+> **CUI Haoyu note:** this is deliberately left unimplemented; the existing dev
+> code does not provide a termination controller to document as complete.

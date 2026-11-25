@@ -28,4 +28,44 @@
 - `docs/debt-register.md` — AI-era technical debt categories.
 - `docs/bug-diary.md` — one entry per significant bug.
 
-(TODO: add the concrete test-to-requirement mapping; enforce in CI.)
+## Concrete test-to-requirement mapping (reviewed 2026-11-25)
+
+The dev branch contains the complete implementations for context budgeting and
+structured debate; the feature-c/team-app tree still carries the original `src/`
+stubs for those elements. The mapping below records both facts rather than
+pretending the trees are identical.
+
+| Requirement | Implementation | Primary tests | Status |
+|---|---|---|---|
+| REQ-CONTEXT-BUDGET | dev: `tradingagents/graph/context_budget.py`, `budgeted_model.py`, `llm_clients/deepseek_context_adapter.py`; team-app: `src/context_assembler.py` stub | `tests/test_context_budget_core.py`, `tests/test_budget_agent_integration.py`, `tests/news_context_budget_fixtures.py` (dev); `test/offline/test_context_budget.py` is a stub | **Implemented/tested on dev; not yet in team-app** |
+| REQ-STRUCTURED-DEBATE | dev: `tradingagents/debate/**`, conditional logic, researcher/risk wiring; team-app: `src/structured_debater.py` stub | `tests/test_debate_opening.py`, `tests/test_structured_agents.py`, graph E2E (dev); no dedicated team-app test | **Implemented/tested on dev; not yet in team-app** |
+| REQ-TRACEABILITY | `src/trace_recorder.py`, `src/integration/trace_adapter.py` | `test/offline/test_traceability.py`, `test/offline/test_integration_trace.py`, `test/offline/test_integration_end_to_end.py` | **Complete (CUI Haoyu)** |
+| REQ-HARD-GUARDRAIL | `src/guardrail.py`, `src/integration/decision_adapter.py`, `gate_support.py`, `governed_graph.py` | `test/offline/test_guardrail.py`, `test_integration_decision.py`, `test_integration_gate.py`, `test_integration_end_to_end.py` | **Complete (CUI Haoyu)** |
+| REQ-TERMINATION-DISCIPLINE | `src/termination_controller.py` is a constant-only stub | `test/offline/test_termination.py` raises `NotImplementedError` | **Missing** |
+
+### Invariant evidence
+
+| Invariant | Negative test / evidence | Status |
+|---|---|---|
+| `INV-GUARDRAIL-ZERO-ESCAPE` | each trigger has a rejection test; malformed/config-error tests; full-graph E2E | Complete |
+| `INV-RATING-VALIDITY` | legal-rating test and `REVIEW`-never-a-rating test | Complete |
+| `INV-TRACE-COMPLETENESS` | every report must be backed by evidence; no-data placeholders; trace-failure sidecar test | Complete |
+
+### Three-tier status
+
+- **Structural:** `scripts/verify_baseline.py --strict` passes in root layout
+  (208 pinned + 5 overrides); `ruff check src test` passes for the project code.
+  A module-to-element fitness check is still a TODO; the dev/team-app module
+  mapping drift is recorded in the debt register.
+- **Regression:** `test/offline` 429 passed, 2 deselected; 9 full-graph E2E
+  passed; the dev upstream suite has 1,496 passing tests with two
+  environment-only `PermissionError` cases, both passing when rerun from a
+  project-writable directory.
+- **Behavioral:** the threshold remains faithfulness/relevancy ≥ 0.6, but
+  `test/live/test_live_prose.py` is still a `NotImplementedError` stub and the
+  semantic-evaluation CI gate is absent. This is the main unmet D4/D7 item.
+
+> **CUI Haoyu note:** the guardrail and traceability rows and their negative
+> tests are mine and were verified locally. The context-budget/structured-debate
+> rows are based on the dev feature branches; they are not yet ported into
+> `team-app`. Termination has no implementation in either tree.

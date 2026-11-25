@@ -21,4 +21,17 @@
    changes, the relevant rules must be updated within **one sprint** of that
    change, or the drift is a defect (see `docs/debt-register.md`).
 
-(TODO: expand as the project's rules crystallise.)
+6. **No secrets in artefacts.** Never write API keys, tokens or credentials into
+   the repository, transcripts, reports or logs. Scan before publishing.
+7. **Quote evidence, not memory.** A report or review must quote the command
+   output/path it relies on; do not reconstruct a test count or baseline result
+   from recollection.
+8. **Formatting requirements are requirements.** “Point 12” means 12-point font
+   size, not a report section; the report must satisfy the stated page/word
+   constraints.
+9. **Baseline drift is a decision.** Editing a pinned file, or merging a branch
+   that does, requires an ADR or a declared override; the verifier is not to be
+   weakened to make the tree pass.
+10. **Every merge leaves a record.** A merge that changes a requirement, module
+    boundary, test or gate updates the relevant D4 record; a template is not a
+    completed review.
